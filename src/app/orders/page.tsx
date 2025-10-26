@@ -1,63 +1,78 @@
-import Link from 'next/link';
-import prisma from '@/lib/prisma';
+import Link from "next/link";
+
+import { prisma } from "@/lib/prisma";
 
 const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(date);
 
 export default async function OrdersPage() {
   const orders = await prisma.order.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Orders</h1>
-        <Link
-          href="/orders/new"
-          className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-        >
-          New Order
-        </Link>
-      </div>
-      <div className="overflow-x-auto border rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Customer</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Origin</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Destination</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Created</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
-            {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <Link href={`/orders/${order.id}`} className="text-blue-600 hover:underline">
-                    {order.customer}
-                  </Link>
-                </td>
-                <td className="px-4 py-3">{order.origin}</td>
-                <td className="px-4 py-3">{order.destination}</td>
-                <td className="px-4 py-3">{formatDateTime(order.createdAt)}</td>
-              </tr>
-            ))}
-            {orders.length === 0 && (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold">Orders</h1>
+          <Link
+            href="/orders/new"
+            className="rounded border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-900"
+          >
+            + New Order
+          </Link>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-zinc-800">
+          <table className="min-w-full text-sm">
+            <thead className="bg-zinc-900 text-left text-xs uppercase tracking-wide text-zinc-400">
               <tr>
-                <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={4}>
-                  No orders yet.
-                </td>
+                <th className="px-4 py-3">Customer</th>
+                <th className="px-4 py-3">Origin</th>
+                <th className="px-4 py-3">Destination</th>
+                <th className="px-4 py-3">Created</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr
+                  key={order.id}
+                  className="border-t border-zinc-800 hover:bg-zinc-900/60"
+                >
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/orders/${order.id}`}
+                      className="font-medium text-white hover:underline"
+                    >
+                      {order.customer}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-zinc-300">{order.origin}</td>
+                  <td className="px-4 py-3 text-zinc-300">{order.destination}</td>
+                  <td className="px-4 py-3 text-zinc-400">
+                    {formatDateTime(order.createdAt)}
+                  </td>
+                </tr>
+              ))}
+              {orders.length === 0 && (
+                <tr>
+                  <td
+                    className="px-4 py-6 text-center text-zinc-400"
+                    colSpan={4}
+                  >
+                    No orders yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
