@@ -1,32 +1,29 @@
-'use server';
+"use server";
 
-import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
-import { Prisma } from '@prisma/client';
-import prisma from '@/lib/prisma';
+import { redirect } from "next/navigation";
 
-const parseDate = (value: FormDataEntryValue | null) => {
-  if (!value) return undefined;
-  const date = new Date(value.toString());
-  return Number.isNaN(date.getTime()) ? undefined : date;
+import { prisma } from "@/lib/prisma";
+
+const toNumberOrNull = (value: FormDataEntryValue | null) => {
+  if (!value) return null;
+  const number = Number(value);
+  return Number.isNaN(number) ? null : number;
 };
 
-const parseDecimal = (value: FormDataEntryValue | null) => {
-  if (!value) return undefined;
-  const str = value.toString();
-  if (!str) return undefined;
-  const number = Number(str);
-  if (Number.isNaN(number)) return undefined;
-  return new Prisma.Decimal(str);
+const toDateOrNull = (value: FormDataEntryValue | null) => {
+  if (!value) return null;
+  const date = new Date(value.toString());
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
 export async function createTrip(orderId: string, formData: FormData) {
-  const driver = formData.get('driver')?.toString() ?? '';
-  const unit = formData.get('unit')?.toString() ?? '';
-  const miles = parseDecimal(formData.get('miles'));
+  const driver = formData.get("driver")?.toString() ?? "";
+  const unit = formData.get("unit")?.toString() ?? "";
+  const miles = toNumberOrNull(formData.get("miles"));
+  const revenue = toNumberOrNull(formData.get("revenue"));
 
-  if (!driver || !unit || !miles) {
-    throw new Error('Driver, unit, and miles are required.');
+  if (miles === null) {
+    throw new Error("Miles is required");
   }
 
   await prisma.trip.create({
@@ -35,13 +32,12 @@ export async function createTrip(orderId: string, formData: FormData) {
       driver,
       unit,
       miles,
-      revenue: parseDecimal(formData.get('revenue')),
-      tripStart: parseDate(formData.get('tripStart')),
-      tripEnd: parseDate(formData.get('tripEnd')),
-      weekStart: parseDate(formData.get('weekStart')),
+      revenue,
+      tripStart: toDateOrNull(formData.get("tripStart")),
+      tripEnd: toDateOrNull(formData.get("tripEnd")),
+      weekStart: toDateOrNull(formData.get("weekStart")),
     },
   });
 
-  revalidatePath(`/orders/${orderId}`);
   redirect(`/orders/${orderId}`);
 }
