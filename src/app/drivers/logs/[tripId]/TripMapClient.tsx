@@ -1,6 +1,7 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
+import "@/styles/Intellifleet.css";
 
 import L from "leaflet";
 import { useEffect, useMemo } from "react";

@@ -1,0 +1,71 @@
+/*
+ * Leaflet dark theme overrides for the Intellifleet driver log map.
+ * These styles keep the controls and popups cohesive with the rest of the
+ * application while still leaning on Leaflet's default class names.
+ */
+
+.leaflet-container {
+  background: radial-gradient(circle at top, rgba(30, 41, 59, 0.65), rgba(2, 6, 23, 0.95)),
+    radial-gradient(circle at bottom, rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.95)) !important;
+  color: #e2e8f0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.leaflet-control-container .leaflet-control-zoom,
+.leaflet-control-container .leaflet-control-zoom a {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background-color: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.45);
+}
+
+.leaflet-control-container .leaflet-control-zoom a:hover {
+  background-color: rgba(30, 41, 59, 0.95);
+  color: #d1fae5;
+}
+
+.leaflet-control-attribution,
+.leaflet-container .leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.85);
+  color: rgba(148, 163, 184, 0.9);
+  border-radius: 0.75rem 0 0 0;
+  padding: 0.35rem 0.65rem;
+  font-size: 11px;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.92);
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.55);
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.leaflet-div-icon,
+.leaflet-div-icon div {
+  background: transparent;
+  border: none;
+}
+
+.leaflet-marker-icon {
+  filter: drop-shadow(0 6px 16px rgba(8, 47, 73, 0.45));
+}
+
+.leaflet-pane .leaflet-interactive {
+  outline: none;
+}
+
+.leaflet-container a {
+  color: #38bdf8;
+}
+
+.leaflet-container a:hover {
+  color: #7dd3fc;
+}
