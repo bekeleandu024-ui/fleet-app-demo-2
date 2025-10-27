@@ -1,125 +1,209 @@
-// Acceptance criteria:
-// - Dashboard shows quick navigation cards to major workflows.
-// - High-level KPIs display counts/averages for orders, at-risk trips, margin, on-time %.
-// - Data is loaded server-side and Prisma Decimals are converted before render.
-// - Links route to intake, planning, dispatch, map, analytics, admin.
-
 import Link from "next/link";
 
 import { getAnalyticsKpis } from "@/server/analytics";
-import prisma from "@/lib/prisma";
 
-function formatPercent(value: number) {
-  if (!Number.isFinite(value)) return "--";
+function formatCount(value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "--";
+  }
+  return value.toLocaleString();
+}
+
+function formatPercent(value: number | null | undefined, digits = 0) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "--";
+  }
+  return `${(value * 100).toFixed(digits)}%`;
+}
+
+function formatMargin(value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "--";
+  }
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function getMarginAccent(value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "text-neutral-100";
+  }
+  if (value >= 0.15) return "text-emerald-400";
+  if (value >= 0.08) return "text-amber-400";
+  return "text-rose-400";
+}
+
 export default async function DashboardPage() {
-  const [{ waitingOrders, atRiskTrips, avgMargin, onTimeEvents }, recentOrders] = await Promise.all([
-    getAnalyticsKpis(),
-    prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-  ]);
+  const { waitingOrders, atRiskTrips, marginWeek, onTimeEvents } = await getAnalyticsKpis();
+
+  const onTimePct = onTimeEvents?.onTimePct;
 
   return (
     <div className="flex flex-col gap-10">
-      <section className="grid gap-4 text-sm text-zinc-300 md:grid-cols-4">
-        <Link href="/orders/new" className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition hover:border-sky-500">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Intake</p>
-          <p className="mt-2 text-lg font-semibold text-white">Orders Intake</p>
-          <p className="mt-1 text-xs text-zinc-400">OCR, email, CSV capture workspace</p>
-        </Link>
-        <Link href="/orders" className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition hover:border-sky-500">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Plan</p>
-          <p className="mt-2 text-lg font-semibold text-white">Plan & Price</p>
-          <p className="mt-1 text-xs text-zinc-400">Driver, unit, margin guardrails</p>
-        </Link>
-        <Link href="/fleet/map" className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition hover:border-sky-500">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Fleet</p>
-          <p className="mt-2 text-lg font-semibold text-white">Live Map</p>
-          <p className="mt-1 text-xs text-zinc-400">Available units & active lanes</p>
-        </Link>
-        <Link href="/analytics" className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition hover:border-sky-500">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Insights</p>
-          <p className="mt-2 text-lg font-semibold text-white">Analytics</p>
-          <p className="mt-1 text-xs text-zinc-400">Margin, dwell, guardrails</p>
-        </Link>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-6">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Orders waiting</p>
-          <p className="mt-2 text-3xl font-semibold text-white">{waitingOrders}</p>
-          <p className="mt-2 text-xs text-zinc-400">Orders needing qualification or pricing today</p>
+      <section className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+        <div>
+          <h1 className="text-xl font-semibold text-neutral-100">Dashboard</h1>
+          <p className="mt-1 text-sm text-neutral-400">Live ops snapshot</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-6">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">At-risk trips</p>
-          <p className="mt-2 text-3xl font-semibold text-white">{atRiskTrips}</p>
-          <p className="mt-2 text-xs text-zinc-400">Delay risk ≥ 30%</p>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-6">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Avg margin this week</p>
-          <p className="mt-2 text-3xl font-semibold text-white">{formatPercent(avgMargin)}</p>
-          <p className="mt-2 text-xs text-zinc-400">Based on booked revenue vs cost</p>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-6">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">On-time events</p>
-          <p className="mt-2 text-3xl font-semibold text-white">{onTimeEvents}</p>
-          <p className="mt-2 text-xs text-zinc-400">Today&apos;s PU/DEL on-time confirmations</p>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Link
+            href="/orders"
+            className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 font-medium text-neutral-200 transition-colors duration-200 hover:border-neutral-700 hover:text-white"
+          >
+            Orders intake
+          </Link>
+          <Link
+            href="/rates"
+            className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 font-medium text-neutral-200 transition-colors duration-200 hover:border-neutral-700 hover:text-white"
+          >
+            Plan &amp; Price
+          </Link>
+          <Link
+            href="/map"
+            className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 font-medium text-neutral-200 transition-colors duration-200 hover:border-neutral-700 hover:text-white"
+          >
+            Live Map
+          </Link>
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Recent Orders</h2>
-            <p className="text-sm text-zinc-400">Latest five orders captured</p>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40 backdrop-blur-sm">
+          <div className="text-sm font-medium text-neutral-300">Orders Waiting</div>
+          <div className="mt-3 text-3xl font-semibold tracking-tight text-neutral-100">{formatCount(waitingOrders)}</div>
+          <p className="mt-2 text-xs text-neutral-400">Orders needing qualification or pricing</p>
+          <Link
+            href="/orders"
+            className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-neutral-300 transition-colors duration-200 hover:text-neutral-100"
+          >
+            View <span aria-hidden>›</span>
+          </Link>
+        </article>
+        <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40 backdrop-blur-sm">
+          <div className="text-sm font-medium text-neutral-300">At-Risk Trips</div>
+          <div className="mt-3 text-3xl font-semibold tracking-tight text-neutral-100">{formatCount(atRiskTrips)}</div>
+          <p className="mt-2 text-xs text-neutral-400">Delay risk ≥ 30%</p>
+          <Link
+            href="/trips"
+            className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-neutral-300 transition-colors duration-200 hover:text-neutral-100"
+          >
+            View <span aria-hidden>›</span>
+          </Link>
+        </article>
+        <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40 backdrop-blur-sm">
+          <div className="text-sm font-medium text-neutral-300">Avg Margin This Week</div>
+          <div className={`mt-3 text-3xl font-semibold tracking-tight ${getMarginAccent(marginWeek)}`}>
+            {formatMargin(marginWeek)}
           </div>
-          <div className="flex flex-wrap gap-3 text-sm">
-            <Link href="/orders/new" className="rounded-lg bg-sky-500/20 px-4 py-2 font-medium text-sky-300 hover:bg-sky-500/30">
-              Create Order
+          <p className="mt-2 text-xs text-neutral-400">Blended margin on active trips</p>
+          <Link
+            href="/rates"
+            className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-neutral-300 transition-colors duration-200 hover:text-neutral-100"
+          >
+            View <span aria-hidden>›</span>
+          </Link>
+        </article>
+        <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40 backdrop-blur-sm">
+          <div className="text-sm font-medium text-neutral-300">On-Time Events</div>
+          <div className="mt-3 text-3xl font-semibold tracking-tight text-neutral-100">{formatPercent(onTimePct)}</div>
+          <p className="mt-2 text-xs text-neutral-400">PU / DEL on-time rate</p>
+          <Link
+            href="/analytics"
+            className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-neutral-300 transition-colors duration-200 hover:text-neutral-100"
+          >
+            View <span aria-hidden>›</span>
+          </Link>
+        </article>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40 backdrop-blur-sm">
+          <div className="flex flex-col gap-2">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Intake</span>
+            <h2 className="text-lg font-semibold text-neutral-100">Orders Intake</h2>
+          </div>
+          <div className="my-3 h-px bg-neutral-800" />
+          <div className="space-y-1">
+            <Link
+              href="/orders/new"
+              className="group flex items-center justify-between py-1 text-sm text-neutral-200 transition-colors duration-200"
+            >
+              <span className="transition-colors duration-200 group-hover:text-white">New Order</span>
+              <span className="text-neutral-500 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white">›</span>
             </Link>
-            <Link href="/dispatch/exceptions" className="rounded-lg bg-zinc-800 px-4 py-2 text-zinc-200 hover:bg-zinc-700">
-              Exceptions Board
-            </Link>
-            <Link href="/admin/rules" className="rounded-lg bg-zinc-800 px-4 py-2 text-zinc-200 hover:bg-zinc-700">
-              Admin Rules
+            <Link
+              href="/orders"
+              className="group flex items-center justify-between py-1 text-sm text-neutral-200 transition-colors duration-200"
+            >
+              <span className="transition-colors duration-200 group-hover:text-white">OCR / Email / CSV workspace</span>
+              <span className="text-neutral-500 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white">›</span>
             </Link>
           </div>
-        </div>
-        <div className="mt-6 overflow-hidden rounded-lg border border-zinc-800">
-          <table className="min-w-full divide-y divide-zinc-800 text-sm">
-            <thead className="bg-zinc-900/60 text-zinc-400">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium">Customer</th>
-                <th className="px-4 py-3 text-left font-medium">Route</th>
-                <th className="px-4 py-3 text-left font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-900/60">
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-zinc-900/50">
-                  <td className="px-4 py-3 font-medium text-white">
-                    <Link href={`/orders/${order.id}/plan`}>{order.customer}</Link>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">
-                    {order.origin} → {order.destination}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-400">{order.status}</td>
-                </tr>
-              ))}
-              {recentOrders.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-zinc-500">
-                    No orders yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        </article>
+
+        <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40 backdrop-blur-sm">
+          <div className="flex flex-col gap-2">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Plan</span>
+            <h2 className="text-lg font-semibold text-neutral-100">Plan &amp; Price</h2>
+          </div>
+          <div className="my-3 h-px bg-neutral-800" />
+          <div className="space-y-1">
+            <Link
+              href="/rates"
+              className="group flex items-center justify-between py-1 text-sm text-neutral-200 transition-colors duration-200"
+            >
+              <span className="transition-colors duration-200 group-hover:text-white">Rate &amp; assign guardrails</span>
+              <span className="text-neutral-500 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white">›</span>
+            </Link>
+            <Link
+              href="/drivers"
+              className="group flex items-center justify-between py-1 text-sm text-neutral-200 transition-colors duration-200"
+            >
+              <span className="transition-colors duration-200 group-hover:text-white">Driver/unit suggestion rules</span>
+              <span className="text-neutral-500 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white">›</span>
+            </Link>
+          </div>
+        </article>
+
+        <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40 backdrop-blur-sm">
+          <div className="flex flex-col gap-2">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Fleet</span>
+            <h2 className="text-lg font-semibold text-neutral-100">Live Map</h2>
+          </div>
+          <div className="my-3 h-px bg-neutral-800" />
+          <div className="space-y-1">
+            <Link
+              href="/map"
+              className="group flex items-center justify-between py-1 text-sm text-neutral-200 transition-colors duration-200"
+            >
+              <span className="transition-colors duration-200 group-hover:text-white">Map &amp; active units</span>
+              <span className="text-neutral-500 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white">›</span>
+            </Link>
+            <Link
+              href="/units"
+              className="group flex items-center justify-between py-1 text-sm text-neutral-200 transition-colors duration-200"
+            >
+              <span className="transition-colors duration-200 group-hover:text-white">Available units</span>
+              <span className="text-neutral-500 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white">›</span>
+            </Link>
+          </div>
+        </article>
+
+        <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40 backdrop-blur-sm">
+          <div className="flex flex-col gap-2">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Insights</span>
+            <h2 className="text-lg font-semibold text-neutral-100">Analytics</h2>
+          </div>
+          <div className="my-3 h-px bg-neutral-800" />
+          <div className="space-y-1">
+            <Link
+              href="/analytics"
+              className="group flex items-center justify-between py-1 text-sm text-neutral-200 transition-colors duration-200"
+            >
+              <span className="transition-colors duration-200 group-hover:text-white">Margin, dwell, guardrails</span>
+              <span className="text-neutral-500 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white">›</span>
+            </Link>
+          </div>
+        </article>
       </section>
     </div>
   );
