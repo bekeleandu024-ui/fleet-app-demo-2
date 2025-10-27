@@ -1,4 +1,17 @@
-import { addDays, startOfWeek } from "date-fns";
+function startOfWeek(date: Date, weekStartsOn = 1) {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = (day < weekStartsOn ? day + 7 : day) - weekStartsOn;
+  result.setDate(result.getDate() - diff);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function addDays(date: Date, amount: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + amount);
+  return result;
+}
 import { Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -122,7 +135,7 @@ async function main() {
   const now = new Date();
   const pickup = addDays(now, -3);
   const delivery = addDays(now, -1);
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(now, 1);
 
   const order = await prisma.order.create({
     data: {
