@@ -42,6 +42,16 @@ export default async function DashboardPage() {
             <Link href="/margins" className="nav-link no-underline text-slate-200 inline-block">Margin, dwell, guardrails</Link>
           </CardContent>
         </Card>
+
+        <Link
+          href="/book"
+          className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40 transition-colors hover:border-emerald-500/60 hover:shadow-emerald-900/30"
+        >
+          <div className="text-sm font-semibold text-neutral-200">Book</div>
+          <div className="mt-2 text-xs text-neutral-400">
+            AI-assisted dispatch console (select qualified order, apply rate &amp; assign)
+          </div>
+        </Link>
       </div>
 
       {/* KPI row */}

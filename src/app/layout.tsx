@@ -14,20 +14,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/" className="text-sm font-semibold text-slate-100 transition hover:text-white">
                 Fleet Dispatch
               </Link>
-              <nav className="flex items-center gap-1">
-                <Link className="nav-link" href="/">
+              <nav className="flex flex-wrap items-center gap-4 text-xs md:text-sm text-neutral-300">
+                <Link href="/" className="hover:text-white transition-colors">
                   Dashboard
                 </Link>
-                <Link className="nav-link" href="/orders">
+                <Link href="/orders" className="hover:text-white transition-colors">
                   Orders
                 </Link>
-                <Link className="nav-link" href="/drivers">
+                <Link
+                  href="/book"
+                  className="hover:text-white transition-colors font-semibold text-emerald-300"
+                >
+                  Book
+                </Link>
+                <Link href="/drivers" className="hover:text-white transition-colors">
                   Drivers
                 </Link>
-                <Link className="nav-link" href="/units">
+                <Link href="/units" className="hover:text-white transition-colors">
                   Units
                 </Link>
-                <Link className="nav-link" href="/rates">
+                <Link href="/rates" className="hover:text-white transition-colors">
                   Rates
                 </Link>
               </nav>

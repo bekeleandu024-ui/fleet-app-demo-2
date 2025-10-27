@@ -1,65 +1,85 @@
-import Link from "next/link";
 import prisma from "@/lib/prisma";
-
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
+import Link from "next/link";
+import { format } from "date-fns";
 
 export default async function OrdersPage() {
   const orders = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }],
+    take: 50,
   });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Orders</h1>
-        <Link
-          href="/orders/new"
-          className="rounded-lg bg-sky-500/20 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-500/30"
-        >
-          + New Order
-        </Link>
-      </div>
-      <div className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
-        <table className="min-w-full divide-y divide-slate-800/60 text-sm">
-          <thead className="bg-slate-900/60 text-slate-400">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Customer</th>
-              <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Origin</th>
-              <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Destination</th>
-              <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Created</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-900/50 text-slate-300">
-            {orders.map((order) => (
-              <tr key={order.id} className="transition hover:bg-slate-900/50">
-                <td className="px-4 py-3 font-semibold text-white">
-                  <Link href={`/orders/${order.id}`} className="hover:text-sky-300">
-                    {order.customer}
+    <main className="min-h-screen bg-[#0a0f1c] text-neutral-100 px-6 py-10">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <header className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold tracking-tight">Orders</h1>
+          <Link
+            href="/orders/new"
+            className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500 transition-colors"
+          >
+            + New Order
+          </Link>
+        </header>
+
+        {orders.length === 0 ? (
+          <div className="text-sm text-neutral-400">No orders yet.</div>
+        ) : (
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {orders.map((o) => (
+              <li
+                key={o.id}
+                className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40 hover:border-neutral-700 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold text-neutral-200 truncate">
+                      {o.customer}
+                    </div>
+                    <div className="mt-1 text-xs text-neutral-400">
+                      <span className="font-mono text-neutral-300">{o.origin}</span>
+                      <span className="mx-1 text-neutral-500">→</span>
+                      <span className="font-mono text-neutral-300">{o.destination}</span>
+                    </div>
+                    {o.requiredTruck ? (
+                      <div className="mt-1 text-[11px] text-amber-300/90">
+                        Equipment: {o.requiredTruck}
+                      </div>
+                    ) : null}
+                    {o.notes ? (
+                      <div className="mt-1 text-[11px] text-neutral-400 line-clamp-2">
+                        {o.notes}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <div className="text-[10px] text-neutral-500">Created</div>
+                    <div className="text-[11px] text-neutral-300">
+                      {format(o.createdAt, "PPp")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <Link
+                    href={`/orders/${o.id}`}
+                    className="text-xs text-neutral-300 hover:text-white underline underline-offset-4"
+                  >
+                    View
                   </Link>
-                </td>
-                <td className="px-4 py-3">{order.origin}</td>
-                <td className="px-4 py-3">{order.destination}</td>
-                <td className="px-4 py-3 text-slate-400">{formatDateTime(order.createdAt)}</td>
-              </tr>
+
+                  <Link
+                    href={`/book?orderId=${o.id}`}
+                    className="inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-[11px] font-semibold text-white hover:bg-emerald-500 transition-colors"
+                  >
+                    Book Trip
+                  </Link>
+                </div>
+              </li>
             ))}
-            {orders.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
-                  No orders yet. Create one to get started.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          </ul>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
