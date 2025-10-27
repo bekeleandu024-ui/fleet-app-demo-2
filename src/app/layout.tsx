@@ -22,6 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   Orders
                 </Link>
                 <Link
+                  href="/trips"
+                  className="text-xs text-neutral-300 hover:text-white transition-colors"
+                >
+                  Trips
+                </Link>
+                <Link
                   href="/book"
                   className="hover:text-white transition-colors font-semibold text-emerald-300"
                 >
