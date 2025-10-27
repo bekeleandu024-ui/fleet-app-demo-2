@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import prisma from "@/lib/prisma";
-import { generateBookingSuggestion } from "@/src/lib/aiBooking";
+import { generateBookingSuggestion } from "@/lib/aiBooking";
 import BookTripButton from "./BookTripButton";
 
 function formatWindow(start: Date | null, end: Date | null) {
