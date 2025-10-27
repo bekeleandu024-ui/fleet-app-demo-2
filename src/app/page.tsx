@@ -117,7 +117,7 @@ export default async function DashboardPage() {
           <ul className="space-y-2 text-sm text-neutral-400">
             <li>
               RPM GTA→CHI trending +7% w/w · Spot {laneRate.rpm.toFixed(2)} {laneRate.source} ({
-                new Date(laneRate.observedAt).toLocaleTimeString()
+                laneRate.lastUpdated.toLocaleTimeString()
               })
             </li>
             {complianceHighlight ? (

@@ -122,7 +122,7 @@ export default async function FleetMapPage() {
               <div className="text-xs uppercase tracking-wide text-neutral-500">Lane Intelligence</div>
               <ul className="mt-2 space-y-2 text-xs text-neutral-400">
                 <li>Estimated arrival buffer: {routeEstimate.trafficNote}</li>
-                <li>Lane RPM source: {laneRate.source} ({new Date(laneRate.observedAt).toLocaleTimeString()})</li>
+                <li>Lane RPM source: {laneRate.source} ({laneRate.lastUpdated.toLocaleTimeString()})</li>
               </ul>
             </div>
           </div>

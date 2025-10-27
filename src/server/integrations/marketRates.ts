@@ -23,7 +23,7 @@
 export interface LaneRate {
   rpm: number;
   source: string;
-  observedAt: string;
+  lastUpdated: Date;
 }
 
 export async function getLaneRate(originZone: string, destZone: string): Promise<LaneRate> {
@@ -40,9 +40,9 @@ export async function getLaneRate(originZone: string, destZone: string): Promise
   // return normalizeLaneRate(payload);
 
   const now = new Date();
-  const rpmLookup: Record<string, { rpm: number; source: string }> = {
-    "GTA>CHI": { rpm: 2.21, source: "DAT" },
-    "GTA>NYC": { rpm: 2.42, source: "Truckstop" },
+  const rpmLookup: Record<string, { rpm: number; source: string; lastUpdated?: Date }> = {
+    "GTA>CHI": { rpm: 2.21, source: "DAT", lastUpdated: new Date("2025-10-27T19:16:52Z") },
+    "GTA>NYC": { rpm: 2.42, source: "Truckstop", lastUpdated: new Date("2025-10-27T19:16:52Z") },
   };
   const key = `${originZone.toUpperCase()}>${destZone.toUpperCase()}`;
   const fallback = { rpm: 2.05, source: "DAT" };
@@ -51,6 +51,6 @@ export async function getLaneRate(originZone: string, destZone: string): Promise
   return {
     rpm: rate.rpm,
     source: rate.source,
-    observedAt: now.toISOString(),
+    lastUpdated: rate.lastUpdated ?? now,
   };
 }

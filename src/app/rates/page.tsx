@@ -3,8 +3,10 @@ import type { ReactNode } from "react";
 import prisma from "@/lib/prisma";
 import { getLaneRate } from "@/src/server/integrations/marketRates";
 
-function formatObserved(timestamp: string) {
-  return new Date(timestamp).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "Z");
+import LaneQueryForm from "./LaneQueryForm";
+
+function formatUpdated(date: Date) {
+  return date.toLocaleString();
 }
 
 export default async function RatesPage() {
@@ -40,32 +42,36 @@ export default async function RatesPage() {
         <p className="text-sm text-slate-400">Per-mile cost templates for quick trip budgeting.</p>
       </div>
 
-      <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
-        <div className="px-6 py-4 text-lg font-semibold text-white">Market Snapshot</div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-800/60 text-sm">
-            <thead className="bg-slate-900/60 text-slate-400">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Lane</th>
-                <th className="px-4 py-3 text-right font-medium uppercase tracking-wide">Spot RPM</th>
-                <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Source</th>
-                <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Updated</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-900/50">
-              {[{ label: "GTA → CHI", data: laneChi }, { label: "GTA → NYC", data: laneNyc }].map(({ label, data }) => (
-                <tr key={label} className="transition hover:bg-slate-900/50">
-                  <td className="px-4 py-3 text-white">{label}</td>
-                  <td className="px-4 py-3 text-right text-slate-200">${data.rpm.toFixed(2)}/mi</td>
-                  <td className="px-4 py-3 text-slate-300">{data.source}</td>
-                  <td className="px-4 py-3 text-slate-300">{formatObserved(data.observedAt)}</td>
+      <div className="space-y-6">
+        <LaneQueryForm />
+
+        <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
+          <div className="px-6 py-4 text-lg font-semibold text-white">Market Snapshot</div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-800/60 text-sm">
+              <thead className="bg-slate-900/60 text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Lane</th>
+                  <th className="px-4 py-3 text-right font-medium uppercase tracking-wide">Spot RPM</th>
+                  <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Source</th>
+                  <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Updated</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="border-t border-slate-800/70 px-6 py-3 text-xs text-slate-500">
-          External rates are advisory only. Use internal RateSetting for contracted customers.
+              </thead>
+              <tbody className="divide-y divide-slate-900/50">
+                {[{ label: "GTA → CHI", data: laneChi }, { label: "GTA → NYC", data: laneNyc }].map(({ label, data }) => (
+                  <tr key={label} className="transition hover:bg-slate-900/50">
+                    <td className="px-4 py-3 text-white">{label}</td>
+                    <td className="px-4 py-3 text-right text-slate-200">${data.rpm.toFixed(2)}/mi</td>
+                    <td className="px-4 py-3 text-slate-300">{data.source}</td>
+                    <td className="px-4 py-3 text-slate-300">{formatUpdated(data.lastUpdated)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-slate-800/70 px-6 py-3 text-xs text-slate-500">
+            External rates are advisory only. Use internal RateSetting for contracted customers.
+          </div>
         </div>
       </div>
 
