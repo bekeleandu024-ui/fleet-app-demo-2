@@ -28,13 +28,13 @@ export default async function RatesPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl font-semibold text-white">Rates</h1>
-        <p className="text-sm text-zinc-400">Per-mile cost templates for quick trip budgeting.</p>
+        <p className="text-sm text-slate-400">Per-mile cost templates for quick trip budgeting.</p>
       </div>
-      <div className="rounded-xl border border-zinc-800 bg-zinc-950/70">
+      <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
         <div className="px-6 py-4 text-lg font-semibold text-white">Rate Templates</div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-zinc-800 text-sm">
-            <thead className="bg-zinc-900/60 text-zinc-400">
+          <table className="min-w-full divide-y divide-slate-800/60 text-sm">
+            <thead className="bg-slate-900/60 text-slate-400">
               <tr>
                 <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Label</th>
                 <th className="px-4 py-3 text-right font-medium uppercase tracking-wide">Fixed CPM</th>
@@ -43,19 +43,19 @@ export default async function RatesPage() {
                 <th className="px-4 py-3 text-right font-medium uppercase tracking-wide">Rolling CPM</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-900/60">
+            <tbody className="divide-y divide-slate-900/50">
               {safeRates.map((rate) => (
-                <tr key={rate.id} className="hover:bg-zinc-900/50">
+                <tr key={rate.id} className="transition hover:bg-slate-900/50">
                   <td className="px-4 py-3 text-white">{rate.label}</td>
-                  <td className="px-4 py-3 text-right text-zinc-200">{rate.fixedCPM.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-zinc-200">{rate.wageCPM.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-zinc-200">{rate.addOnsCPM.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-zinc-200">{rate.rollingCPM.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-slate-200">{rate.fixedCPM.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-slate-200">{rate.wageCPM.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-slate-200">{rate.addOnsCPM.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-slate-200">{rate.rollingCPM.toFixed(2)}</td>
                 </tr>
               ))}
               {safeRates.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                     No rates configured.
                   </td>
                 </tr>
@@ -65,11 +65,11 @@ export default async function RatesPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-950/70">
+      <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
         <div className="px-6 py-4 text-lg font-semibold text-white">Rate Settings</div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-zinc-800 text-sm">
-            <thead className="bg-zinc-900/60 text-zinc-400">
+          <table className="min-w-full divide-y divide-slate-800/60 text-sm">
+            <thead className="bg-slate-900/60 text-slate-400">
               <tr>
                 <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Rate Key</th>
                 <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Category</th>
@@ -78,19 +78,19 @@ export default async function RatesPage() {
                 <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Note</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-900/60">
+            <tbody className="divide-y divide-slate-900/50">
               {safeSettings.map((setting) => (
-                <tr key={setting.id} className="hover:bg-zinc-900/50">
+                <tr key={setting.id} className="transition hover:bg-slate-900/50">
                   <td className="px-4 py-3 text-white">{setting.rateKey}</td>
-                  <td className="px-4 py-3 text-zinc-300">{setting.category}</td>
-                  <td className="px-4 py-3 text-right text-zinc-200">{setting.value.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-zinc-300">{setting.unit}</td>
-                  <td className="px-4 py-3 text-zinc-400">{setting.note ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-300">{setting.category}</td>
+                  <td className="px-4 py-3 text-right text-slate-200">{setting.value.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-slate-300">{setting.unit}</td>
+                  <td className="px-4 py-3 text-slate-400">{setting.note ?? "—"}</td>
                 </tr>
               ))}
               {safeSettings.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                     No settings configured.
                   </td>
                 </tr>

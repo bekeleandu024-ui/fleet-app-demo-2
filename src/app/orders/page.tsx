@@ -27,9 +27,9 @@ export default async function OrdersPage() {
           + New Order
         </Link>
       </div>
-      <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70">
-        <table className="min-w-full divide-y divide-zinc-800 text-sm">
-          <thead className="bg-zinc-900/60 text-zinc-400">
+      <div className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
+        <table className="min-w-full divide-y divide-slate-800/60 text-sm">
+          <thead className="bg-slate-900/60 text-slate-400">
             <tr>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Customer</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Origin</th>
@@ -37,9 +37,9 @@ export default async function OrdersPage() {
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Created</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-900/60 text-zinc-300">
+          <tbody className="divide-y divide-slate-900/50 text-slate-300">
             {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-zinc-900/60">
+              <tr key={order.id} className="transition hover:bg-slate-900/50">
                 <td className="px-4 py-3 font-semibold text-white">
                   <Link href={`/orders/${order.id}`} className="hover:text-sky-300">
                     {order.customer}
@@ -47,12 +47,12 @@ export default async function OrdersPage() {
                 </td>
                 <td className="px-4 py-3">{order.origin}</td>
                 <td className="px-4 py-3">{order.destination}</td>
-                <td className="px-4 py-3 text-zinc-400">{formatDateTime(order.createdAt)}</td>
+                <td className="px-4 py-3 text-slate-400">{formatDateTime(order.createdAt)}</td>
               </tr>
             ))}
             {orders.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
                   No orders yet. Create one to get started.
                 </td>
               </tr>

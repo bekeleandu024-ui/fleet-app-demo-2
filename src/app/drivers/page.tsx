@@ -15,9 +15,9 @@ export default async function DriversPage() {
           + New Driver
         </Link>
       </div>
-      <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70">
-        <table className="min-w-full divide-y divide-zinc-800 text-sm">
-          <thead className="bg-zinc-900/60 text-zinc-400">
+      <div className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
+        <table className="min-w-full divide-y divide-slate-800/60 text-sm">
+          <thead className="bg-slate-900/60 text-slate-400">
             <tr>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Name</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Type</th>
@@ -26,25 +26,25 @@ export default async function DriversPage() {
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-900/60">
+          <tbody className="divide-y divide-slate-900/50">
             {drivers.map((driver) => (
-              <tr key={driver.id} className="hover:bg-zinc-900/50">
+              <tr key={driver.id} className="transition hover:bg-slate-900/45">
                 <td className="px-4 py-3 text-white">{driver.name}</td>
-                <td className="px-4 py-3 text-zinc-300">{driver.type ?? "—"}</td>
-                <td className="px-4 py-3 text-zinc-300">{driver.homeBase ?? "—"}</td>
+                <td className="px-4 py-3 text-slate-300">{driver.type ?? "—"}</td>
+                <td className="px-4 py-3 text-slate-300">{driver.homeBase ?? "—"}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                       driver.active
                         ? "bg-emerald-500/10 text-emerald-300"
-                        : "bg-zinc-800 text-zinc-400"
+                        : "bg-slate-800 text-slate-400"
                     }`}
                   >
                     {driver.active ? "Active" : "Inactive"}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/drivers/${driver.id}/edit`} className="text-sm text-sky-300 hover:text-sky-200">
+                  <Link href={`/drivers/${driver.id}/edit`} className="text-sm text-sky-300 transition hover:text-sky-200">
                     Edit
                   </Link>
                 </td>
@@ -52,7 +52,7 @@ export default async function DriversPage() {
             ))}
             {drivers.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                   No drivers yet.
                 </td>
               </tr>
