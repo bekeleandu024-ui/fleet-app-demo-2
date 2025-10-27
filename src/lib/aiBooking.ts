@@ -114,6 +114,63 @@ function chooseUnit(units: UnitInput[], telematicsDriverName: string | null) {
   return units[0];
 }
 
+type RecommendationMeta = {
+  dataSources: string;
+  advisory: string;
+};
+
+type RecommendationDetails = {
+  driver: DriverInput | null;
+  unit: UnitInput | null;
+  rate: { rpm: number; miles: number | null } | null;
+  reasonLines: string[];
+  meta: RecommendationMeta;
+};
+
+function buildRecommendation({
+  driver,
+  unit,
+  laneRate,
+  routeEstimate,
+}: {
+  driver: DriverInput | null;
+  unit: UnitInput | null;
+  laneRate: { rpm: number; source: string } | null;
+  routeEstimate: { miles: number; etaMinutes: number; trafficNote: string } | null;
+}): RecommendationDetails {
+  const reasonLines: string[] = [
+    driver
+      ? `Driver: ${driver.name} staged near ${driver.homeBase ?? "fleet base"}`
+      : "No active driver found",
+    unit
+      ? `Unit ${unit.code}`
+      : "Unit TBD",
+    routeEstimate
+      ? `${routeEstimate.miles.toFixed(0)} mi lane, ETA ${(routeEstimate.etaMinutes / 60).toFixed(1)} h`
+      : "No route estimate",
+  ];
+
+  const dataSources = `Data sources: telematics for positioning, routing API for ETA, market index (${laneRate?.source ?? "n/a"}) for RPM.`;
+
+  const advisory = "This is advisory. Dispatcher approval required.";
+
+  return {
+    driver,
+    unit,
+    rate: laneRate
+      ? {
+          rpm: laneRate.rpm,
+          miles: routeEstimate?.miles ?? null,
+        }
+      : null,
+    reasonLines,
+    meta: {
+      dataSources,
+      advisory,
+    },
+  };
+}
+
 function buildNotes({
   order,
   driver,
@@ -129,17 +186,20 @@ function buildNotes({
   routeEstimate: { miles: number; etaMinutes: number; trafficNote: string };
   marginPct: number;
 }) {
-  const marginAlert = marginPct < 0.1 ? `⚠ Margin ${(marginPct * 100).toFixed(1)}%. Below guardrail (10%). Consider surcharge or decline.` : null;
-  const summaryParts = [
-    driver ? `${driver.name} staged near ${driver.homeBase ?? "fleet base"}` : "No active driver found",
-    unit ? `Unit ${unit.code}` : "Unit TBD",
-    `${routeEstimate.miles.toFixed(0)} mi lane, ETA ${(routeEstimate.etaMinutes / 60).toFixed(1)} h`.
+  const marginAlert =
+    marginPct < 0.1
+      ? `⚠ Margin ${(marginPct * 100).toFixed(1)}%. Below guardrail (10%). Consider surcharge or decline.`
+      : null;
+
+  const recommendation = buildRecommendation({ driver, unit, laneRate, routeEstimate });
+
+  const lines = [
+    ...recommendation.reasonLines,
+    `Market RPM ${laneRate.rpm.toFixed(2)}`,
+    recommendation.meta.dataSources,
+    recommendation.meta.advisory,
   ];
-  const dataSources = `Data sources: telematics for positioning, routing API for ETA, market index (${laneRate.source}) for RPM.`;
 
-  const advisory = "This is advisory. Dispatcher approval required.";
-
-  const lines = [summaryParts.join(" · "), `Market RPM ${laneRate.rpm.toFixed(2)}`, dataSources, advisory];
   if (marginAlert) {
     lines.unshift(marginAlert);
   }
