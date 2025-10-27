@@ -1,19 +1,22 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
 
-import { prisma } from "@/lib/prisma";
-
-const toDateOrNull = (value: FormDataEntryValue | null) => {
+function toDateOrNull(value: FormDataEntryValue | null) {
   if (!value) return null;
-  const date = new Date(value.toString());
-  return Number.isNaN(date.getTime()) ? null : date;
-};
+  const parsed = new Date(value.toString());
+  return Number.isNaN(parsed.valueOf()) ? null : parsed;
+}
 
 export async function createOrder(formData: FormData) {
-  const customer = formData.get("customer")?.toString() ?? "";
-  const origin = formData.get("origin")?.toString() ?? "";
-  const destination = formData.get("destination")?.toString() ?? "";
+  const customer = formData.get("customer")?.toString().trim();
+  const origin = formData.get("origin")?.toString().trim();
+  const destination = formData.get("destination")?.toString().trim();
+
+  if (!customer || !origin || !destination) {
+    throw new Error("Customer, origin, and destination are required.");
+  }
 
   await prisma.order.create({
     data: {
@@ -24,8 +27,8 @@ export async function createOrder(formData: FormData) {
       puWindowEnd: toDateOrNull(formData.get("puWindowEnd")),
       delWindowStart: toDateOrNull(formData.get("delWindowStart")),
       delWindowEnd: toDateOrNull(formData.get("delWindowEnd")),
-      requiredTruck: formData.get("requiredTruck")?.toString() || null,
-      notes: formData.get("notes")?.toString() || null,
+      requiredTruck: formData.get("requiredTruck")?.toString().trim() || null,
+      notes: formData.get("notes")?.toString().trim() || null,
     },
   });
 

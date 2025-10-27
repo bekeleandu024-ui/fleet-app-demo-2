@@ -1,29 +1,32 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
 
-import { prisma } from "@/lib/prisma";
-
-const toNumberOrNull = (value: FormDataEntryValue | null) => {
-  if (!value) return null;
+function toNumber(value: FormDataEntryValue | null) {
+  if (value === null || value === undefined || value === "") return null;
   const number = Number(value);
   return Number.isNaN(number) ? null : number;
-};
+}
 
-const toDateOrNull = (value: FormDataEntryValue | null) => {
+function toDate(value: FormDataEntryValue | null) {
   if (!value) return null;
-  const date = new Date(value.toString());
-  return Number.isNaN(date.getTime()) ? null : date;
-};
+  const parsed = new Date(value.toString());
+  return Number.isNaN(parsed.valueOf()) ? null : parsed;
+}
 
 export async function createTrip(orderId: string, formData: FormData) {
-  const driver = formData.get("driver")?.toString() ?? "";
-  const unit = formData.get("unit")?.toString() ?? "";
-  const miles = toNumberOrNull(formData.get("miles"));
-  const revenue = toNumberOrNull(formData.get("revenue"));
+  const driver = formData.get("driver")?.toString().trim();
+  const unit = formData.get("unit")?.toString().trim();
+  const miles = toNumber(formData.get("miles"));
+  const revenue = toNumber(formData.get("revenue"));
+
+  if (!driver || !unit) {
+    throw new Error("Driver and unit are required.");
+  }
 
   if (miles === null) {
-    throw new Error("Miles is required");
+    throw new Error("Miles is required.");
   }
 
   await prisma.trip.create({
@@ -33,9 +36,10 @@ export async function createTrip(orderId: string, formData: FormData) {
       unit,
       miles,
       revenue,
-      tripStart: toDateOrNull(formData.get("tripStart")),
-      tripEnd: toDateOrNull(formData.get("tripEnd")),
-      weekStart: toDateOrNull(formData.get("weekStart")),
+      tripStart: toDate(formData.get("tripStart")),
+      tripEnd: toDate(formData.get("tripEnd")),
+      weekStart: toDate(formData.get("weekStart")),
+      status: "Created",
     },
   });
 
