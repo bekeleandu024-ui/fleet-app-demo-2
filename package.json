@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "prisma migrate deploy --schema prisma/schema.prisma && next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "prisma migrate deploy --schema prisma/schema.prisma && next start",
     "prisma:migrate": "prisma migrate deploy --schema prisma/schema.prisma",
     "prisma:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
