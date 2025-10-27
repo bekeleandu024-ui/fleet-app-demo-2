@@ -30,7 +30,17 @@ export default async function DriversPage() {
               <tr key={driver.id} className="hover:bg-zinc-900/50">
                 <td className="px-4 py-3 text-white">{driver.name}</td>
                 <td className="px-4 py-3 text-zinc-300">{driver.homeBase ?? "—"}</td>
-                <td className="px-4 py-3 text-zinc-300">{driver.active ? "Yes" : "No"}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                      driver.active
+                        ? "bg-emerald-500/10 text-emerald-300"
+                        : "bg-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    {driver.active ? "Active" : "Inactive"}
+                  </span>
+                </td>
                 <td className="px-4 py-3">
                   <Link href={`/drivers/${driver.id}/edit`} className="text-sm text-sky-300 hover:text-sky-200">
                     Edit

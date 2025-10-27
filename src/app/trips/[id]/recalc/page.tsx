@@ -1,72 +1,130 @@
 import Link from "next/link";
 import { recalcTripTotals } from "@/server/trip-recalc";
 
-const metricConfig = [
-  { key: "fixedCPM", label: "Fixed CPM", format: "perMile" },
-  { key: "wageCPM", label: "Wage CPM", format: "perMile" },
-  { key: "addOnsCPM", label: "Add-ons CPM", format: "perMile" },
-  { key: "rollingCPM", label: "Rolling CPM", format: "perMile" },
-  { key: "totalCPM", label: "Total CPM", format: "perMile", direction: "lower" as const },
-  { key: "totalCost", label: "Total Cost", format: "currency", direction: "lower" as const },
-  { key: "revenue", label: "Revenue", format: "currency", direction: "higher" as const },
-  { key: "profit", label: "Profit", format: "currency", direction: "higher" as const },
-  { key: "marginPct", label: "Margin %", format: "percent", direction: "higher" as const },
+const FIELD_ORDER = [
+  "fixedCPM",
+  "wageCPM",
+  "addOnsCPM",
+  "rollingCPM",
+  "totalCPM",
+  "totalCost",
+  "profit",
+  "marginPct",
 ] as const;
 
-function formatValue(value: number | null | undefined, type: "perMile" | "currency" | "percent") {
+const LABELS: Record<(typeof FIELD_ORDER)[number], string> = {
+  fixedCPM: "Fixed CPM",
+  wageCPM: "Wage CPM",
+  addOnsCPM: "Add-ons CPM",
+  rollingCPM: "Rolling CPM",
+  totalCPM: "Total CPM",
+  totalCost: "Total Cost",
+  profit: "Profit",
+  marginPct: "Margin",
+};
+
+const CURRENCY_FIELDS = new Set<(typeof FIELD_ORDER)[number]>(["totalCost", "profit"]);
+function formatValue(field: (typeof FIELD_ORDER)[number], value: number | null) {
   if (value === null || value === undefined) return "—";
-  switch (type) {
-    case "currency":
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
-    case "percent":
-      return `${value.toFixed(2)}%`;
-    case "perMile":
-    default:
-      return `$${value.toFixed(2)}/mi`;
+  if (field === "marginPct") {
+    return `${(value * 100).toFixed(1)}%`;
   }
+  if (CURRENCY_FIELDS.has(field)) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(value);
+  }
+  return value.toFixed(2);
 }
 
-function classifyChange(direction: "higher" | "lower" | undefined, before: number | null | undefined, after: number | null | undefined) {
-  if (before === null && after === null) return "neutral";
-  if (before === null || after === null) return "changed";
-  const diff = after - before;
-  if (Math.abs(diff) < 0.0005) return "neutral";
-  if (!direction) {
-    return "changed";
+function getDeltaInfo(field: (typeof FIELD_ORDER)[number], before: number | null, after: number | null) {
+  if (before === null && after === null) {
+    return { label: "—", tone: "neutral", arrow: "→" };
   }
-  if (direction === "higher") {
-    return diff > 0 ? "positive" : "negative";
+  if (before === null || after === null) {
+    return { label: "n/a", tone: "neutral", arrow: "→" };
   }
-  return diff < 0 ? "positive" : "negative";
+  const deltaRaw = after - before;
+  const threshold = field === "marginPct" ? 0.0005 : 0.005;
+  if (Math.abs(deltaRaw) < threshold) {
+    return { label: "≈0", tone: "neutral", arrow: "→" };
+  }
+
+  const isBenefitField = field === "profit" || field === "marginPct";
+  const improved = isBenefitField ? deltaRaw > 0 : deltaRaw < 0;
+  const worse = isBenefitField ? deltaRaw < 0 : deltaRaw > 0;
+
+  let arrow = "→";
+  if (improved) {
+    arrow = isBenefitField ? "↑" : "↓";
+  } else if (worse) {
+    arrow = isBenefitField ? "↓" : "↑";
+  }
+
+  const tone = improved ? "positive" : worse ? "negative" : "neutral";
+
+  let label: string;
+  if (field === "marginPct") {
+    label = `${deltaRaw > 0 ? "+" : ""}${(deltaRaw * 100).toFixed(1)} pts`;
+  } else if (CURRENCY_FIELDS.has(field)) {
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    });
+    label = `${deltaRaw > 0 ? "+" : ""}${formatter.format(deltaRaw)}`;
+  } else {
+    label = `${deltaRaw > 0 ? "+" : ""}${deltaRaw.toFixed(2)}`;
+  }
+
+  return { label, tone, arrow };
 }
+
+const toneClasses: Record<string, string> = {
+  positive: "text-emerald-300",
+  negative: "text-rose-400",
+  neutral: "text-zinc-400",
+};
 
 export default async function TripRecalcPage({ params }: { params: { id: string } }) {
   const { trip, before, after, rateApplied } = await recalcTripTotals(params.id);
+  const hasChanges = FIELD_ORDER.some((field) => {
+    const beforeValue = before[field] ?? null;
+    const afterValue = after[field] ?? null;
+    if (beforeValue === null && afterValue === null) return false;
+    if (beforeValue === null || afterValue === null) return true;
+    const threshold = field === "marginPct" ? 0.0005 : 0.005;
+    return Math.abs(afterValue - beforeValue) > threshold;
+  });
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Link href={trip.orderId ? `/orders/${trip.orderId}` : "/orders"} className="text-sm text-zinc-400 hover:text-zinc-200">
-          ← Back to order
-        </Link>
-        <h1 className="text-2xl font-semibold text-white">Trip Cost Recalculation</h1>
-        {trip.order && (
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Recalculated totals</h1>
           <p className="text-sm text-zinc-400">
-            {trip.order.customer}: {trip.order.origin} → {trip.order.destination}
+            {trip.driver && `${trip.driver} • `}
+            {trip.unit && `${trip.unit} • `}
+            {trip.miles.toLocaleString()} miles
           </p>
-        )}
-        <p className="text-xs uppercase tracking-wide text-zinc-500">
-          Miles: {trip.miles.toLocaleString()} • Revenue: {trip.revenue !== null ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(trip.revenue) : "—"}
-        </p>
-        {rateApplied ? (
-          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
-            Rate template applied: {rateApplied.label}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 px-4 py-2 text-sm text-zinc-300">
-            No rate template linked. Existing CPM values were reused.
-          </div>
-        )}
+        </div>
+        <Link href={`/trips/${trip.id}/edit`} className="text-sm text-sky-300 hover:text-sky-200">
+          ← Back to edit
+        </Link>
+      </div>
+
+      <div
+        className={`rounded-lg border px-4 py-3 text-sm ${
+          rateApplied
+            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+            : hasChanges
+            ? "border-sky-500/40 bg-sky-500/10 text-sky-200"
+            : "border-zinc-700 bg-zinc-900/70 text-zinc-300"
+        }`}
+      >
+        {rateApplied
+          ? "Applied default rate to fill missing CPM fields."
+          : hasChanges
+          ? "Trip totals refreshed with the latest CPM inputs."
+          : "No changes were necessary; totals already matched current inputs."}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70">
@@ -74,27 +132,24 @@ export default async function TripRecalcPage({ params }: { params: { id: string 
           <thead className="bg-zinc-900/60 text-zinc-400">
             <tr>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Metric</th>
-              <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Before</th>
-              <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">After</th>
+              <th className="px-4 py-3 text-right font-medium uppercase tracking-wide">Before</th>
+              <th className="px-4 py-3 text-right font-medium uppercase tracking-wide">After</th>
+              <th className="px-4 py-3 text-right font-medium uppercase tracking-wide">Δ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-900/60">
-            {metricConfig.map((metric) => {
-              const change = classifyChange(metric.direction, before[metric.key], after[metric.key]);
-              const toneClass =
-                change === "positive"
-                  ? "text-emerald-400"
-                  : change === "negative"
-                  ? "text-rose-400"
-                  : change === "changed"
-                  ? "text-sky-400"
-                  : "text-zinc-300";
+            {FIELD_ORDER.map((field) => {
+              const delta = getDeltaInfo(field, before[field], after[field]);
               return (
-                <tr key={metric.key} className="hover:bg-zinc-900/50">
-                  <td className="px-4 py-3 text-white">{metric.label}</td>
-                  <td className="px-4 py-3 text-zinc-300">{formatValue(before[metric.key], metric.format)}</td>
-                  <td className={`px-4 py-3 font-semibold ${toneClass}`}>
-                    {formatValue(after[metric.key], metric.format)}
+                <tr key={field}>
+                  <td className="px-4 py-3 text-zinc-300">{LABELS[field]}</td>
+                  <td className="px-4 py-3 text-right text-zinc-200">{formatValue(field, before[field])}</td>
+                  <td className="px-4 py-3 text-right text-zinc-200">{formatValue(field, after[field])}</td>
+                  <td className={`px-4 py-3 text-right font-medium ${toneClasses[delta.tone]}`}>
+                    <span className="inline-flex items-center justify-end gap-1">
+                      <span>{delta.arrow}</span>
+                      <span>{delta.label}</span>
+                    </span>
                   </td>
                 </tr>
               );

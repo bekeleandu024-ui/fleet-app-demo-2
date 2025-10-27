@@ -1,92 +1,103 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import EditForm from "./ui-edit-form";
-import { updateTrip } from "./actions";
 
-function toDateTimeInput(value: Date | null | undefined) {
-  if (!value) return "";
-  return value.toISOString().slice(0, 16);
+function toNumber(value: unknown) {
+  if (value === null || value === undefined) return null;
+  const number = Number(value);
+  return Number.isNaN(number) ? null : number;
 }
 
-function toDateInput(value: Date | null | undefined) {
-  if (!value) return "";
-  return value.toISOString().slice(0, 10);
-}
+export default async function TripEditPage({ params }: { params: { id: string } }) {
+  const trip = await prisma.trip.findUnique({
+    where: { id: params.id },
+    include: {
+      driverRef: true,
+      unitRef: true,
+      rateRef: true,
+    },
+  });
 
-export default async function EditTripPage({ params }: { params: { id: string } }) {
-  const [trip, drivers, units, rates] = await Promise.all([
-    prisma.trip.findUnique({
-      where: { id: params.id },
-      include: {
-        order: { select: { id: true, customer: true, origin: true, destination: true } },
-        driverRef: { select: { id: true, name: true } },
-        unitRef: { select: { id: true, code: true } },
-        rateRef: { select: { id: true, type: true, zone: true, fixedCPM: true, wageCPM: true, addOnsCPM: true, rollingCPM: true } },
-      },
-    }),
+  if (!trip) {
+    notFound();
+  }
+
+  const [drivers, units, rates, distinctTypes, distinctZones] = await Promise.all([
     prisma.driver.findMany({ orderBy: { name: "asc" } }),
     prisma.unit.findMany({ orderBy: { code: "asc" } }),
     prisma.rate.findMany({ orderBy: [{ type: "asc" }, { zone: "asc" }] }),
+    prisma.trip.findMany({ distinct: ["type"], where: { type: { not: null } }, select: { type: true } }),
+    prisma.trip.findMany({ distinct: ["zone"], where: { zone: { not: null } }, select: { zone: true } }),
   ]);
-
-  if (!trip) {
-    return <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-6 text-sm text-zinc-400">Trip not found.</div>;
-  }
 
   const safeTrip = {
     id: trip.id,
-    orderId: trip.orderId,
-    driver: trip.driver,
-    unit: trip.unit,
-    driverId: trip.driverId ?? "",
-    unitId: trip.unitId ?? "",
-    rateId: trip.rateId ?? "",
-    miles: Number(trip.miles ?? 0),
-    revenue: trip.revenue ? Number(trip.revenue) : "",
-    fixedCPM: trip.fixedCPM ? Number(trip.fixedCPM) : "",
-    wageCPM: trip.wageCPM ? Number(trip.wageCPM) : "",
-    addOnsCPM: trip.addOnsCPM ? Number(trip.addOnsCPM) : "",
-    rollingCPM: trip.rollingCPM ? Number(trip.rollingCPM) : "",
-    totalCPM: trip.totalCPM ? Number(trip.totalCPM) : "",
-    totalCost: trip.totalCost ? Number(trip.totalCost) : "",
-    profit: trip.profit ? Number(trip.profit) : "",
-    marginPct: trip.marginPct ? Number(trip.marginPct) : "",
+    driverId: trip.driverId ?? undefined,
+    unitId: trip.unitId ?? undefined,
+    rateId: trip.rateId ?? undefined,
+    driver: trip.driver ?? "",
+    unit: trip.unit ?? "",
+    type: trip.type ?? "",
+    zone: trip.zone ?? "",
     status: trip.status,
-    tripStart: toDateTimeInput(trip.tripStart),
-    tripEnd: toDateTimeInput(trip.tripEnd),
-    weekStart: toDateInput(trip.weekStart),
-  } as const;
+    miles: Number(trip.miles),
+    revenue: toNumber(trip.revenue),
+    fixedCPM: toNumber(trip.fixedCPM),
+    wageCPM: toNumber(trip.wageCPM),
+    addOnsCPM: toNumber(trip.addOnsCPM),
+    rollingCPM: toNumber(trip.rollingCPM),
+    totalCPM: toNumber(trip.totalCPM),
+    totalCost: toNumber(trip.totalCost),
+    profit: toNumber(trip.profit),
+    marginPct: toNumber(trip.marginPct),
+  };
 
-  const driverOptions = drivers.map((driver) => ({ id: driver.id, name: driver.name }));
-  const unitOptions = units.map((unit) => ({ id: unit.id, code: unit.code }));
-  const rateOptions = rates.map((rate) => ({
+  const safeRates = rates.map((rate) => ({
     id: rate.id,
-    label: [rate.type, rate.zone].filter(Boolean).join(" • ") || "Untitled",
+    type: rate.type ?? "",
+    zone: rate.zone ?? "",
     fixedCPM: Number(rate.fixedCPM),
     wageCPM: Number(rate.wageCPM),
     addOnsCPM: Number(rate.addOnsCPM),
     rollingCPM: Number(rate.rollingCPM),
   }));
 
+  const rateOptions = safeRates.map((rate) => ({
+    id: rate.id,
+    label: [rate.type, rate.zone].filter(Boolean).join(" • ") || "Rate",
+  }));
+
+  const driverOptions = drivers.map((driver) => ({ id: driver.id, name: driver.name }));
+  const unitOptions = units.map((unit) => ({ id: unit.id, code: unit.code }));
+
+  const typeSet = new Set<string>();
+  const zoneSet = new Set<string>();
+  distinctTypes.forEach((entry) => entry.type && typeSet.add(entry.type));
+  distinctZones.forEach((entry) => entry.zone && zoneSet.add(entry.zone));
+  safeRates.forEach((rate) => {
+    if (rate.type) typeSet.add(rate.type);
+    if (rate.zone) zoneSet.add(rate.zone);
+  });
+  if (trip.type) typeSet.add(trip.type);
+  if (trip.zone) zoneSet.add(trip.zone);
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Link href={trip.orderId ? `/orders/${trip.orderId}` : "/orders"} className="text-sm text-zinc-400 hover:text-zinc-200">
-          ← Back to order
-        </Link>
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-white">Edit Trip</h1>
-        {trip.order && (
-          <p className="text-sm text-zinc-400">
-            {trip.order.customer}: {trip.order.origin} → {trip.order.destination}
-          </p>
-        )}
+        <Link href="/trips" className="text-sm text-zinc-400 hover:text-zinc-200">
+          ← Back to trips
+        </Link>
       </div>
       <EditForm
         trip={safeTrip}
         drivers={driverOptions}
         units={unitOptions}
-        rates={rateOptions}
-        updateTrip={updateTrip.bind(null, trip.id)}
+        types={[...typeSet].sort()}
+        zones={[...zoneSet].sort()}
+        rates={safeRates}
+        rateOptions={rateOptions}
       />
     </div>
   );

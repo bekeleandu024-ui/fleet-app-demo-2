@@ -32,7 +32,17 @@ export default async function UnitsPage() {
                 <td className="px-4 py-3 text-white">{unit.code}</td>
                 <td className="px-4 py-3 text-zinc-300">{unit.type ?? "—"}</td>
                 <td className="px-4 py-3 text-zinc-300">{unit.homeBase ?? "—"}</td>
-                <td className="px-4 py-3 text-zinc-300">{unit.active ? "Yes" : "No"}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                      unit.active
+                        ? "bg-emerald-500/10 text-emerald-300"
+                        : "bg-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    {unit.active ? "Active" : "Inactive"}
+                  </span>
+                </td>
                 <td className="px-4 py-3">
                   <Link href={`/units/${unit.id}/edit`} className="text-sm text-sky-300 hover:text-sky-200">
                     Edit

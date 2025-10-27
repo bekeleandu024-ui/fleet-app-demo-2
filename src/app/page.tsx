@@ -29,8 +29,8 @@ export default async function DashboardPage() {
           <p className="text-sm uppercase tracking-wide text-zinc-500">Trips</p>
           <h2 className="mt-2 text-4xl font-semibold text-white">{tripCount}</h2>
           <p className="mt-3 text-sm text-zinc-400">Trips tracked for margin and assignments.</p>
-          <Link href="/orders" className="mt-6 inline-flex items-center text-sm font-semibold text-sky-400">
-            View Orders & Trips →
+          <Link href="/trips" className="mt-6 inline-flex items-center text-sm font-semibold text-sky-400">
+            View Trips →
           </Link>
         </div>
       </section>

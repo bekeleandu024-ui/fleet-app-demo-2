@@ -1,6 +1,5 @@
 import Link from "next/link";
 import NewOrderForm from "./NewOrderForm";
-import { createOrder } from "./actions";
 
 export default function NewOrderPage() {
   return (
@@ -10,7 +9,7 @@ export default function NewOrderPage() {
           ← Back to orders
         </Link>
       </div>
-      <NewOrderForm createOrder={createOrder} />
+      <NewOrderForm />
     </div>
   );
 }
