@@ -30,13 +30,8 @@ function toDecimal(value: number | null) {
   return value === null || value === undefined ? null : new Prisma.Decimal(value);
 }
 
-export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> } | { params: { id: string } }
-) {
-  const paramsOrPromise = context.params;
-  const params = paramsOrPromise instanceof Promise ? await paramsOrPromise : paramsOrPromise;
-  const { id } = params ?? {};
+export async function PUT(request: Request, context: any) {
+  const { id } = (context?.params ?? {}) as { id?: string };
   if (!id) {
     return NextResponse.json({ error: "Trip id is required" }, { status: 400 });
   }
