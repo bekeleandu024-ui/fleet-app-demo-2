@@ -29,7 +29,11 @@ function toNumber(value: unknown) {
   }
 }
 
-export default async function BookPage() {
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams: { orderId?: string };
+}) {
   const [orders, drivers, units, rates] = await Promise.all([
     fetchQualifiedOrders(),
     fetchActiveDrivers(),
@@ -83,13 +87,23 @@ export default async function BookPage() {
   }));
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold text-white">Book Trips</h1>
-        <p className="text-sm text-neutral-400">AI-assisted dispatch and pricing console</p>
-      </div>
+    <main className="min-h-screen bg-[#0a0f1c] text-neutral-100 px-6 py-10">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <header className="flex flex-col gap-2">
+          <h1 className="text-xl font-semibold tracking-tight">Book Trips</h1>
+          <p className="text-sm text-neutral-400">
+            AI-assisted dispatch &amp; pricing console.
+          </p>
+        </header>
 
-      <BookingConsole orders={safeOrders} drivers={safeDrivers} units={safeUnits} rates={safeRates} />
-    </div>
+        <BookingConsole
+          initialOrderId={searchParams?.orderId ?? null}
+          orders={safeOrders}
+          drivers={safeDrivers}
+          units={safeUnits}
+          rates={safeRates}
+        />
+      </div>
+    </main>
   );
 }

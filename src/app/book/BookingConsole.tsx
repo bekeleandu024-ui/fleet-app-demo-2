@@ -39,6 +39,7 @@ export interface BookingRate extends BookingRateInput {
 }
 
 interface Props {
+  initialOrderId?: string | null;
   orders: BookingOrder[];
   drivers: BookingDriver[];
   units: BookingUnit[];
@@ -59,9 +60,9 @@ interface ConfirmationState {
   total: number;
 }
 
-export default function BookingConsole({ orders, drivers, units, rates }: Props) {
+export default function BookingConsole({ initialOrderId, orders, drivers, units, rates }: Props) {
   const [orderList, setOrderList] = useState(orders);
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(orders[0]?.id ?? null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(() => initialOrderId ?? orders[0]?.id ?? null);
   const [suggestion, setSuggestion] = useState<BookingSuggestion | null>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const [booking, setBooking] = useState(false);
@@ -76,6 +77,11 @@ export default function BookingConsole({ orders, drivers, units, rates }: Props)
   const [rpm, setRpm] = useState(0);
   const [fuelSurcharge, setFuelSurcharge] = useState(0);
   const [addOns, setAddOns] = useState(0);
+
+  useEffect(() => {
+    if (!initialOrderId) return;
+    setSelectedOrderId(initialOrderId);
+  }, [initialOrderId]);
 
   const selectedOrder = useMemo(
     () => orderList.find((order) => order.id === selectedOrderId) ?? null,
