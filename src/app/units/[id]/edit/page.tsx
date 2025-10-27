@@ -1,21 +1,47 @@
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { notFound, redirect } from "next/navigation";
 import UnitForm from "../../unit-form";
-import { updateUnit } from "./actions";
+import prisma from "@/lib/prisma";
+
+async function updateUnit(id: string, formData: FormData) {
+  "use server";
+
+  const code = formData.get("code")?.toString().trim();
+  if (!code) {
+    throw new Error("Code is required");
+  }
+
+  await prisma.unit.update({
+    where: { id },
+    data: {
+      code,
+      type: formData.get("type")?.toString().trim() || null,
+      homeBase: formData.get("homeBase")?.toString().trim() || null,
+      active: formData.get("active") === "on",
+    },
+  });
+
+  redirect("/units");
+}
 
 export default async function EditUnitPage({ params }: { params: { id: string } }) {
   const unit = await prisma.unit.findUnique({ where: { id: params.id } });
-
   if (!unit) {
-    return <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-6 text-sm text-zinc-400">Unit not found.</div>;
+    notFound();
+  }
+
+  async function action(formData: FormData) {
+    "use server";
+    await updateUnit(params.id, formData);
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/units" className="text-sm text-zinc-400 hover:text-zinc-200">
-        ← Back to units
-      </Link>
-      <h1 className="text-2xl font-semibold text-white">Edit Unit</h1>
+      <div className="flex items-center justify-between">
+        <Link href="/units" className="text-sm text-zinc-400 hover:text-zinc-200">
+          ← Back to units
+        </Link>
+      </div>
       <UnitForm
         initialValues={{
           code: unit.code,
@@ -23,7 +49,7 @@ export default async function EditUnitPage({ params }: { params: { id: string } 
           homeBase: unit.homeBase ?? "",
           active: unit.active,
         }}
-        action={updateUnit.bind(null, unit.id)}
+        action={action}
         submitLabel="Save Unit"
       />
     </div>

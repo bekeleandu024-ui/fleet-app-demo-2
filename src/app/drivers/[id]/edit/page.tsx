@@ -1,21 +1,47 @@
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { notFound, redirect } from "next/navigation";
 import DriverForm from "../../driver-form";
-import { updateDriver } from "./actions";
+import prisma from "@/lib/prisma";
+
+async function updateDriver(id: string, formData: FormData) {
+  "use server";
+
+  const name = formData.get("name")?.toString().trim();
+  if (!name) {
+    throw new Error("Name is required");
+  }
+
+  await prisma.driver.update({
+    where: { id },
+    data: {
+      name,
+      license: formData.get("license")?.toString().trim() || null,
+      homeBase: formData.get("homeBase")?.toString().trim() || null,
+      active: formData.get("active") === "on",
+    },
+  });
+
+  redirect("/drivers");
+}
 
 export default async function EditDriverPage({ params }: { params: { id: string } }) {
   const driver = await prisma.driver.findUnique({ where: { id: params.id } });
-
   if (!driver) {
-    return <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-6 text-sm text-zinc-400">Driver not found.</div>;
+    notFound();
+  }
+
+  async function action(formData: FormData) {
+    "use server";
+    await updateDriver(params.id, formData);
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/drivers" className="text-sm text-zinc-400 hover:text-zinc-200">
-        ← Back to drivers
-      </Link>
-      <h1 className="text-2xl font-semibold text-white">Edit Driver</h1>
+      <div className="flex items-center justify-between">
+        <Link href="/drivers" className="text-sm text-zinc-400 hover:text-zinc-200">
+          ← Back to drivers
+        </Link>
+      </div>
       <DriverForm
         initialValues={{
           name: driver.name,
@@ -23,7 +49,7 @@ export default async function EditDriverPage({ params }: { params: { id: string 
           homeBase: driver.homeBase ?? "",
           active: driver.active,
         }}
-        action={updateDriver.bind(null, driver.id)}
+        action={action}
         submitLabel="Save Driver"
       />
     </div>

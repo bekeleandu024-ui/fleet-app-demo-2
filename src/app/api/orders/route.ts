@@ -28,7 +28,12 @@ export async function POST(request: Request) {
 
   const result = orderSchema.safeParse(json);
   if (!result.success) {
-    return NextResponse.json({ error: result.error.flatten().fieldErrors }, { status: 400 });
+    const fieldErrors = result.error.flatten().fieldErrors;
+    const messages = Object.values(fieldErrors)
+      .flat()
+      .filter((value): value is string => Boolean(value));
+    const message = messages.length ? messages.join(", ") : "Validation failed";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   const data = result.data;
