@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import LogButtons from "./LogButtons";
 import TripActivityTimeline from "./TripActivityTimeline";
 import TripMapAndStatus from "./TripMapAndStatus";
-import type { EventDTO, StopDTO } from "./TripMapClient";
 import prisma from "@/lib/prisma";
+import { formatDateTimeLabel } from "@/lib/formatters";
 import { getTripOperationalStatus } from "@/server/tripStatus";
 
 export default async function DriverLogPage({
@@ -30,8 +30,8 @@ export default async function DriverLogPage({
 
   if (!trip) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0a0f1c] text-slate-200">
-        <div className="text-center text-sm text-slate-400">Trip not found.</div>
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#040711] via-[#090d1c] to-[#02030a] text-white/80">
+        <div className="text-center text-sm text-white/60">Trip not found.</div>
       </main>
     );
   }
@@ -46,26 +46,6 @@ export default async function DriverLogPage({
   const totalCost = Number(trip.totalCost ?? 0);
   const profit = Number(trip.profit ?? 0);
   const marginPct = Number(trip.marginPct ?? 0);
-
-  const mapStops: StopDTO[] = trip.stops.map((stop) => ({
-    id: stop.id,
-    seq: stop.seq,
-    stopType: stop.stopType,
-    name: stop.name ?? null,
-    city: stop.city ?? null,
-    state: stop.state ?? null,
-    lat: stop.lat ?? null,
-    lon: stop.lon ?? null,
-  }));
-
-  const mapEvents: EventDTO[] = trip.events.map((event) => ({
-    id: event.id,
-    type: event.type,
-    at: event.at.toISOString(),
-    stopId: event.stopId ?? null,
-    lat: event.lat ?? null,
-    lon: event.lon ?? null,
-  }));
 
   const timelineEvents = trip.events.map((event) => ({
     id: event.id,
@@ -84,17 +64,11 @@ export default async function DriverLogPage({
       : null,
   }));
 
-  const finalDeliveryStop = [...trip.stops]
-    .filter((stop) => stop.stopType === "DELIVERY")
-    .sort((a, b) => a.seq - b.seq)
-    .at(-1);
-
-  const etaLabel = finalDeliveryStop?.scheduledAt
-    ? timeUntil(finalDeliveryStop.scheduledAt)
-    : "Awaiting schedule";
-
-  const delayRiskLabel = operationalStatus?.delayRiskBadge?.text ?? "On schedule";
-  const nextCommitmentLabel = operationalStatus?.nextCommitmentLabel ?? "No upcoming stops";
+  const nextCommitmentLabel =
+    operationalStatus?.nextCommitmentLabel ??
+    (trip.nextCommitmentAt
+      ? `Due ${formatDateTimeLabel(trip.nextCommitmentAt) ?? "soon"}`
+      : "No upcoming stops");
 
   const statusCard = (
     <TripStatusCard
@@ -112,7 +86,7 @@ export default async function DriverLogPage({
     />
   );
 
-  const logButtonStops = mapStops.map((stop) => ({
+  const logButtonStops = trip.stops.map((stop) => ({
     id: stop.id,
     seq: stop.seq,
     stopType: stop.stopType,
@@ -122,78 +96,58 @@ export default async function DriverLogPage({
   }));
 
   return (
-    <main className="min-h-screen bg-[#0a0f1c] px-6 py-10 text-slate-100">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8">
+    <main className="min-h-screen bg-gradient-to-br from-[#040711] via-[#090d1c] to-[#02030a] text-white">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-10">
         <header className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">Driver Log / Trip Clock</h1>
-          <p className="text-sm text-slate-400">
-            One-tap milestones. Every press is timestamped, cost is updated.
+          <h1 className="text-2xl font-semibold tracking-tight text-white">Driver Log / Trip Clock</h1>
+          <p className="text-[13px] text-white/60">
+            One-tap milestones. Every press is timestamped, location-tagged, and costed.
           </p>
         </header>
 
-        <section className="grid gap-4 rounded-xl border border-white/10 bg-slate-900/40 p-5 text-[13px] leading-relaxed shadow-lg shadow-black/40 md:grid-cols-2">
-          <div>
-            <div className="text-[11px] uppercase text-slate-400">Trip / Lane</div>
-            <div className="text-sm font-semibold text-slate-100">
-              {trip.order?.origin || "—"} → {trip.order?.destination || "—"}
+        <section className="rounded-xl border border-white/10 bg-white/5 p-6 text-white/80 shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">Trip / Lane</div>
+              <div className="text-[15px] font-semibold text-white/90">
+                {trip.order?.origin || "—"} <span className="text-white/50">→</span> {trip.order?.destination || "—"}
+              </div>
+              <div className="text-[12px] text-white/50">Trip #{trip.id.slice(0, 8).toUpperCase()}</div>
             </div>
-            <div className="text-[11px] text-slate-400">Trip #{trip.id.slice(0, 8).toUpperCase()}</div>
-          </div>
-
-          <div>
-            <div className="text-[11px] uppercase text-slate-400">Driver / Unit</div>
-            <div className="text-sm font-medium text-slate-100">
-              {trip.driver || "—"} &nbsp;/&nbsp; {trip.unit || "—"}
-            </div>
-            <div className="text-[11px] text-slate-400">Status: {trip.status || "Created"}</div>
-          </div>
-
-          <div>
-            <div className="text-[11px] uppercase text-slate-400">Miles / Revenue</div>
-            <div className="text-sm font-medium text-slate-100">{miles} mi</div>
-            <div className="text-[11px] text-slate-400">${revenue.toFixed(2)} total</div>
-          </div>
-
-          <div>
-            <div className="text-[11px] uppercase text-slate-400">Cost / Margin</div>
-            <div className="text-sm font-medium text-slate-100">Total CPM {totalCPM.toFixed(2)}</div>
-            <div
-              className={`text-[11px] ${
-                marginPct >= 0.12
-                  ? "text-emerald-400"
-                  : marginPct >= 0.08
-                  ? "text-amber-300"
-                  : "text-rose-400"
-              }`}
-            >
-              Margin {(marginPct * 100).toFixed(1)}%
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">Driver / Unit</div>
+              <div className="text-[15px] font-medium text-white/90">
+                {trip.driver || "—"} <span className="text-white/40">/</span> {trip.unit || "—"}
+              </div>
+              <div className="text-[12px] text-white/50">Status: {trip.status || "Created"}</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-300 md:col-span-2">
-            <Metric label="Fixed CPM" value={fixedCPM.toFixed(2)} prefix="$" />
-            <Metric label="Wage CPM" value={wageCPM.toFixed(2)} prefix="$" />
-            <Metric label="Rolling CPM" value={rollingCPM.toFixed(2)} prefix="$" />
-            <Metric label="Add-ons CPM" value={addOnsCPM.toFixed(2)} prefix="$" />
-            <Metric label="Total Cost" value={totalCost.toFixed(2)} prefix="$" />
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <Metric label="Miles" value={miles.toLocaleString()} suffix=" mi" />
+            <Metric label="Revenue" value={revenue.toFixed(2)} prefix="$" />
+            <Metric label="Total CPM" value={totalCPM.toFixed(2)} prefix="$" />
             <Metric label="Profit" value={profit.toFixed(2)} prefix="$" />
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <Metric label="Fixed CPM" value={fixedCPM.toFixed(2)} prefix="$" subtle />
+            <Metric label="Wage CPM" value={wageCPM.toFixed(2)} prefix="$" subtle />
+            <Metric label="Rolling CPM" value={rollingCPM.toFixed(2)} prefix="$" subtle />
+            <Metric label="Add-ons CPM" value={addOnsCPM.toFixed(2)} prefix="$" subtle />
+            <Metric label="Total Cost" value={totalCost.toFixed(2)} prefix="$" subtle />
+            <Metric label="Margin" value={(marginPct * 100).toFixed(1)} suffix="%" tone={marginTone(marginPct)} subtle />
           </div>
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          <TripMapAndStatus
-            stops={mapStops}
-            events={mapEvents}
-            etaToFinalStopLabel={etaLabel}
-            delayRiskPctLabel={delayRiskLabel}
-            nextCommitmentText={nextCommitmentLabel}
-          />
+          <TripMapAndStatus trip={trip} nextCommitmentLabel={nextCommitmentLabel} />
           {statusCard}
         </div>
 
-        <section className="rounded-xl border border-white/10 bg-slate-900/40 p-5 shadow-lg shadow-black/40">
-          <div className="text-sm font-semibold text-slate-200">Log an Event</div>
-          <p className="mt-2 text-xs text-slate-400">
+        <section className="rounded-xl border border-white/10 bg-white/5 p-6 text-white/80 shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+          <div className="text-[13px] font-semibold uppercase tracking-[0.18em] text-white">Log an Event</div>
+          <p className="mt-2 text-[12px] text-white/60">
             Tap a button when it happens. We&apos;ll timestamp it, capture geolocation, and update costing.
           </p>
           <div className="mt-4">
@@ -203,30 +157,12 @@ export default async function DriverLogPage({
 
         <TripActivityTimeline events={timelineEvents} />
 
-        <p className="text-[11px] text-slate-500">
-          Tap to log events in real time. Edits are timestamped and auditable.
+        <p className="text-[11px] text-white/40">
+          Logs are immutable and auditable. Update in real time to keep ops synchronized.
         </p>
       </div>
     </main>
   );
-}
-
-function timeUntil(date: Date) {
-  const diffMs = date.getTime() - Date.now();
-  if (diffMs <= 0) {
-    return "Due now";
-  }
-  const minutes = Math.floor(diffMs / 60000);
-  const days = Math.floor(minutes / (60 * 24));
-  const hours = Math.floor((minutes % (60 * 24)) / 60);
-  const mins = minutes % 60;
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  }
-  if (hours > 0) {
-    return `${hours}h ${mins}m`;
-  }
-  return `${Math.max(mins, 1)}m`;
 }
 
 function TripStatusCard({
@@ -247,24 +183,21 @@ function TripStatusCard({
   operationalAlerts: string[];
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-slate-900/40 p-5 shadow-lg shadow-black/40">
-      <div className="text-sm font-semibold text-slate-200">Trip Status</div>
-      <div className="mt-4 space-y-3 text-xs text-slate-100">
+    <section className="rounded-xl border border-white/10 bg-white/5 p-6 text-white/85 shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+      <div className="text-[13px] font-semibold uppercase tracking-[0.18em] text-white">Trip Status</div>
+      <div className="mt-4 space-y-4 text-[13px]">
         <StatusRow label="Driver / Unit" value={`${driver || "—"} / ${unit || "—"}`} />
         <StatusRow label="Trip State" value={statusLabel || "Created"} />
         <StatusRow label="Next Commitment" value={nextCommitmentLabel} />
         <StatusRow label="Delay Risk" value={<Badge tone={delayBadge.tone}>{delayBadge.text}</Badge>} />
-        <StatusRow
-          label="Margin Health"
-          value={<Badge tone={marginBadge.tone}>{marginBadge.text}</Badge>}
-        />
+        <StatusRow label="Margin Health" value={<Badge tone={marginBadge.tone}>{marginBadge.text}</Badge>} />
       </div>
 
-      <div className="mt-5">
-        <div className="text-[11px] uppercase tracking-wide text-slate-400">Operational Alerts</div>
-        <ul className="mt-2 space-y-1 text-[11px]">
+      <div className="mt-6">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">Operational Alerts</div>
+        <ul className="mt-3 space-y-1 text-[12px] text-white/60">
           {operationalAlerts.length === 0 ? (
-            <li className="text-slate-500">No active alerts.</li>
+            <li className="text-white/40">No active alerts.</li>
           ) : (
             operationalAlerts.map((alert) => (
               <li key={alert} className="text-rose-300">• {alert}</li>
@@ -272,15 +205,15 @@ function TripStatusCard({
           )}
         </ul>
       </div>
-    </div>
+    </section>
   );
 }
 
 function StatusRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide text-slate-400">{label}</div>
-      <div className="text-sm text-slate-100">{value}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">{label}</div>
+      <div className="mt-1 text-[14px] text-white/90">{value}</div>
     </div>
   );
 }
@@ -288,13 +221,13 @@ function StatusRow({ label, value }: { label: string; value: ReactNode }) {
 function Badge({ tone, children }: { tone: "green" | "yellow" | "red"; children: ReactNode }) {
   const toneClass =
     tone === "green"
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
       : tone === "yellow"
-      ? "border-amber-400/30 bg-amber-400/10 text-amber-200"
-      : "border-rose-500/30 bg-rose-500/10 text-rose-300";
+      ? "border-amber-400/40 bg-amber-400/10 text-amber-200"
+      : "border-rose-500/40 bg-rose-500/15 text-rose-200";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded border px-2 py-[2px] text-[11px] font-medium leading-none ${toneClass}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-3 py-[4px] text-[12px] font-semibold leading-none ${toneClass}`}
     >
       {children}
     </span>
@@ -306,20 +239,45 @@ function Metric({
   value,
   prefix,
   suffix,
+  tone,
+  subtle,
 }: {
   label: string;
   value: string;
   prefix?: string;
   suffix?: string;
+  tone?: "positive" | "neutral" | "negative";
+  subtle?: boolean;
 }) {
+  const toneClass =
+    tone === "positive"
+      ? "text-emerald-300"
+      : tone === "negative"
+      ? "text-rose-300"
+      : "text-white/85";
+
   return (
-    <div className="rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 shadow-inner shadow-black/40">
-      <div className="text-[10px] uppercase tracking-wide text-slate-400">{label}</div>
-      <div className="text-[12px] font-semibold text-slate-100">
+    <div
+      className={`rounded-lg border border-white/10 ${
+        subtle ? "bg-black/20" : "bg-black/30"
+      } px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
+    >
+      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">{label}</div>
+      <div className={`mt-1 text-[14px] font-semibold ${toneClass}`}>
         {prefix ?? ""}
         {value}
         {suffix ?? ""}
       </div>
     </div>
   );
+}
+
+function marginTone(marginPct: number): "positive" | "neutral" | "negative" {
+  if (marginPct >= 0.12) {
+    return "positive";
+  }
+  if (marginPct >= 0.08) {
+    return "neutral";
+  }
+  return "negative";
 }
