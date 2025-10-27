@@ -4,6 +4,19 @@ import { z } from "zod";
 
 import prisma from "@/src/lib/prisma";
 
+const stopSchema = z.object({
+  stopType: z.enum(["PICKUP", "DELIVERY", "DROP_HOOK", "BORDER", "OTHER"]),
+  name: z.string().optional().nullable(),
+  street: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  postal: z.string().optional().nullable(),
+  scheduledAt: z.string().optional().nullable(),
+  lat: z.number().optional().nullable(),
+  lon: z.number().optional().nullable(),
+});
+
 const bookingSchema = z.object({
   orderId: z.string().min(1),
   driverId: z.string().optional().nullable(),
@@ -22,6 +35,7 @@ const bookingSchema = z.object({
   aiReason: z.string().optional().nullable(),
   aiHighlights: z.array(z.string()).optional().nullable(),
   aiDiagnostics: z.unknown().optional().nullable(),
+  stops: z.array(stopSchema).min(1),
 });
 
 function toDecimal(value: number | null | undefined) {
@@ -56,8 +70,25 @@ export async function POST(request: Request) {
   const suggestionJson = suggestionContext ? JSON.stringify(suggestionContext) : null;
   const reason = data.aiReason?.trim() || null;
 
-  const [trip] = await prisma.$transaction([
-    prisma.trip.create({
+  const stopsPayload = data.stops.map((stop) => {
+    const scheduledAt = stop.scheduledAt ? new Date(stop.scheduledAt) : null;
+    const scheduledAtValue = scheduledAt && !Number.isNaN(scheduledAt.getTime()) ? scheduledAt : null;
+    return {
+      stopType: stop.stopType,
+      name: stop.name?.trim() || null,
+      street: stop.street?.trim() || null,
+      city: stop.city?.trim() || null,
+      state: stop.state?.trim() || null,
+      country: stop.country?.trim() || null,
+      postal: stop.postal?.trim() || null,
+      scheduledAt: scheduledAtValue,
+      lat: typeof stop.lat === "number" && Number.isFinite(stop.lat) ? stop.lat : null,
+      lon: typeof stop.lon === "number" && Number.isFinite(stop.lon) ? stop.lon : null,
+    };
+  });
+
+  const trip = await prisma.$transaction(async (tx) => {
+    const createdTrip = await tx.trip.create({
       data: {
         orderId: data.orderId,
         driverId: data.driverId ?? null,
@@ -85,8 +116,28 @@ export async function POST(request: Request) {
       include: {
         order: { select: { id: true, customer: true, origin: true, destination: true } },
       },
-    }),
-    prisma.order.update({
+    });
+
+    if (stopsPayload.length > 0) {
+      await tx.tripStop.createMany({
+        data: stopsPayload.map((stop, index) => ({
+          tripId: createdTrip.id,
+          seq: index + 1,
+          stopType: stop.stopType,
+          name: stop.name,
+          street: stop.street,
+          city: stop.city,
+          state: stop.state,
+          country: stop.country,
+          postal: stop.postal,
+          scheduledAt: stop.scheduledAt,
+          lat: stop.lat,
+          lon: stop.lon,
+        })),
+      });
+    }
+
+    await tx.order.update({
       where: { id: data.orderId },
       data: {
         status: "Booked",
@@ -98,8 +149,10 @@ export async function POST(request: Request) {
         lastSuggestedBy: "AI Dispatcher",
         lastSuggestionAt: new Date(),
       },
-    }),
-  ]);
+    });
+
+    return createdTrip;
+  });
 
   const response = {
     id: trip.id,

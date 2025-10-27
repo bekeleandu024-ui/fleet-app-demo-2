@@ -88,6 +88,7 @@ model Trip {
   unitRef              Unit?     @relation("TripUnit", fields: [unitId], references: [id])
   rateRef              Rate?     @relation("TripRate", fields: [rateId], references: [id])
   events               Event[]
+  stops                TripStop[]
 }
 
 model Event {
@@ -96,9 +97,32 @@ model Event {
   trip      Trip     @relation(fields: [tripId], references: [id])
   type      String
   at        DateTime
-  location  String?
+  stopId    String?
+  stop      TripStop? @relation(fields: [stopId], references: [id])
+  lat       Float?
+  lon       Float?
   notes     String?
   createdAt DateTime @default(now())
+}
+
+model TripStop {
+  id          String   @id @default(cuid())
+  tripId      String
+  trip        Trip     @relation(fields: [tripId], references: [id])
+  seq         Int
+  stopType    String
+  name        String?
+  street      String?
+  city        String?
+  state       String?
+  country     String?
+  postal      String?
+  scheduledAt DateTime?
+  lat         Float?
+  lon         Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  events      Event[]
 }
 
 model Driver {

@@ -30,7 +30,7 @@ export default async function TrackTripPage({ params }: { params: { id: string }
     where: { id: params.id },
     include: {
       order: true,
-      events: { orderBy: { at: "asc" } },
+      events: { orderBy: { at: "asc" }, include: { stop: true } },
     },
   });
 
@@ -72,7 +72,11 @@ export default async function TrackTripPage({ params }: { params: { id: string }
             <div key={event.id} className="border-t border-zinc-900 px-5 py-3 text-sm text-zinc-300">
               <p className="font-semibold text-white">{event.type}</p>
               <p className="text-xs text-zinc-400">{formatDate(event.at)}</p>
-              {event.location && <p className="text-xs text-zinc-500">{event.location}</p>}
+              {event.stop ? (
+                <p className="text-xs text-zinc-500">
+                  Stop {event.stop.seq} · {event.stop.city ?? event.stop.name ?? "Unknown"}
+                </p>
+              ) : null}
               {event.notes && <p className="mt-1 text-xs text-zinc-400">{event.notes}</p>}
             </div>
           ))}

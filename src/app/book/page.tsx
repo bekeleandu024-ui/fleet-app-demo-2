@@ -26,7 +26,13 @@ function marginClass(value: number) {
   return "text-rose-400";
 }
 
-export default async function BookPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolvedSearchParams =
+    searchParams ? await searchParams : undefined;
   const [orders, drivers, units, rates] = await Promise.all([
     prisma.order.findMany({
       where: { status: "Qualified" },
@@ -84,7 +90,7 @@ export default async function BookPage({ searchParams }: { searchParams?: Record
     rollingCPM: Number(rate.rollingCPM),
   }));
 
-  const selectedOrderIdParam = searchParams?.orderId;
+  const selectedOrderIdParam = resolvedSearchParams?.orderId;
   const selectedOrderId = Array.isArray(selectedOrderIdParam)
     ? selectedOrderIdParam[0]
     : selectedOrderIdParam ?? safeOrders[0]?.id ?? null;
@@ -229,6 +235,9 @@ export default async function BookPage({ searchParams }: { searchParams?: Record
                       suggestion.suggestedUnit.reason,
                       `Market ${suggestion.suggestedRate.rpmMarket.toFixed(2)} vs Quote ${suggestion.suggestedRate.rpmQuoted.toFixed(2)}`,
                     ]}
+                    orderOrigin={selectedOrder.origin}
+                    orderDestination={selectedOrder.destination}
+                    customerName={selectedOrder.customer}
                   />
                 </div>
               ) : (
