@@ -1,11 +1,20 @@
 import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
 import Section from "@/src/components/ui/section";
 import Stat from "@/src/components/ui/stat";
 import { getAnalyticsKpis } from "@/src/server/analytics"; // keep as is
+import { getLaneRate } from "@/src/server/integrations/marketRates";
+import { fetchRegulatoryUpdates } from "@/src/server/integrations/compliance";
 
 export default async function DashboardPage() {
-  const { waitingOrders, atRiskTrips, avgMargin, onTimeEvents } = await getAnalyticsKpis();
+  const [kpis, laneRate, regulatory] = await Promise.all([
+    getAnalyticsKpis(),
+    getLaneRate("GTA", "CHI"),
+    fetchRegulatoryUpdates(),
+  ]);
+  const { waitingOrders, atRiskTrips, avgMargin, onTimeEvents } = kpis;
+  const complianceHighlight = regulatory.find((item) => item.severity !== "info") ?? regulatory[0] ?? null;
 
   return (
     <div className="space-y-8">
@@ -99,6 +108,28 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </Section>
+
+      <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 shadow-lg shadow-black/40">
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold text-neutral-200">Live Signals</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-sm text-neutral-400">
+            <li>
+              RPM GTA→CHI trending +7% w/w · Spot {laneRate.rpm.toFixed(2)} {laneRate.source} ({
+                new Date(laneRate.observedAt).toLocaleTimeString()
+              })
+            </li>
+            {complianceHighlight ? (
+              <li>
+                {complianceHighlight.rule}: {complianceHighlight.change} (effective {complianceHighlight.effective})
+              </li>
+            ) : (
+              <li>No active compliance alerts.</li>
+            )}
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }

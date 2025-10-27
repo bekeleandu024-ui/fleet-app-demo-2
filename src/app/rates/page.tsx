@@ -1,7 +1,15 @@
+import type { ReactNode } from "react";
+
 import prisma from "@/lib/prisma";
+import { getLaneRate } from "@/src/server/integrations/marketRates";
+
+function formatObserved(timestamp: string) {
+  return new Date(timestamp).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "Z");
+}
 
 export default async function RatesPage() {
-  const [rates, settings] = await Promise.all([
+  const [[laneChi, laneNyc], rates, settings] = await Promise.all([
+    Promise.all([getLaneRate("GTA", "CHI"), getLaneRate("GTA", "NYC")]),
     prisma.rate.findMany({ orderBy: [{ type: "asc" }, { zone: "asc" }] }),
     prisma.rateSetting.findMany({ orderBy: [{ rateKey: "asc" }, { category: "asc" }] }),
   ]);
@@ -13,6 +21,7 @@ export default async function RatesPage() {
     wageCPM: Number(rate.wageCPM),
     addOnsCPM: Number(rate.addOnsCPM),
     rollingCPM: Number(rate.rollingCPM),
+    zone: rate.zone ?? null,
   }));
 
   const safeSettings = settings.map((setting) => ({
@@ -30,6 +39,36 @@ export default async function RatesPage() {
         <h1 className="text-2xl font-semibold text-white">Rates</h1>
         <p className="text-sm text-slate-400">Per-mile cost templates for quick trip budgeting.</p>
       </div>
+
+      <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
+        <div className="px-6 py-4 text-lg font-semibold text-white">Market Snapshot</div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-800/60 text-sm">
+            <thead className="bg-slate-900/60 text-slate-400">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Lane</th>
+                <th className="px-4 py-3 text-right font-medium uppercase tracking-wide">Spot RPM</th>
+                <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Source</th>
+                <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Updated</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-900/50">
+              {[{ label: "GTA → CHI", data: laneChi }, { label: "GTA → NYC", data: laneNyc }].map(({ label, data }) => (
+                <tr key={label} className="transition hover:bg-slate-900/50">
+                  <td className="px-4 py-3 text-white">{label}</td>
+                  <td className="px-4 py-3 text-right text-slate-200">${data.rpm.toFixed(2)}/mi</td>
+                  <td className="px-4 py-3 text-slate-300">{data.source}</td>
+                  <td className="px-4 py-3 text-slate-300">{formatObserved(data.observedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="border-t border-slate-800/70 px-6 py-3 text-xs text-slate-500">
+          External rates are advisory only. Use internal RateSetting for contracted customers.
+        </div>
+      </div>
+
       <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
         <div className="px-6 py-4 text-lg font-semibold text-white">Rate Templates</div>
         <div className="overflow-x-auto">
@@ -44,15 +83,47 @@ export default async function RatesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-900/50">
-              {safeRates.map((rate) => (
-                <tr key={rate.id} className="transition hover:bg-slate-900/50">
-                  <td className="px-4 py-3 text-white">{rate.label}</td>
-                  <td className="px-4 py-3 text-right text-slate-200">{rate.fixedCPM.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-slate-200">{rate.wageCPM.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-slate-200">{rate.addOnsCPM.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-slate-200">{rate.rollingCPM.toFixed(2)}</td>
-                </tr>
-              ))}
+              {safeRates.map((rate) => {
+                const totalCpm = rate.fixedCPM + rate.wageCPM + rate.addOnsCPM + rate.rollingCPM;
+                const zone = (rate.zone ?? "").toUpperCase();
+                const marketContext = zone.includes("CHI")
+                  ? laneChi
+                  : zone.includes("NYC") || zone.includes("NEW YORK")
+                    ? laneNyc
+                    : null;
+                const diff = marketContext ? marketContext.rpm - totalCpm : null;
+                let pill: ReactNode = null;
+                if (diff !== null) {
+                  if (diff >= 0.4) {
+                    pill = (
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                        Competitive
+                      </span>
+                    );
+                  } else if (diff <= -0.4) {
+                    pill = (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400">
+                        High vs Market
+                      </span>
+                    );
+                  }
+                }
+
+                return (
+                  <tr key={rate.id} className="transition hover:bg-slate-900/50">
+                    <td className="px-4 py-3 text-white">
+                      <div className="flex items-center gap-2">
+                        <span>{rate.label}</span>
+                        {pill}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right text-slate-200">{rate.fixedCPM.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right text-slate-200">{rate.wageCPM.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right text-slate-200">{rate.addOnsCPM.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right text-slate-200">{rate.rollingCPM.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
               {safeRates.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
