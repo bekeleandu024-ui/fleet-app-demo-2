@@ -2,64 +2,63 @@
 
 import { useMemo } from "react";
 
-import { useTripMapFocus } from "./TripMapAndStatus";
-import type { TripEventDTO } from "./TripMapAndStatus";
+interface TimelineEventDTO {
+  id: string;
+  type: string;
+  at: string;
+  notes?: string | null;
+  stop?: {
+    id: string;
+    seq: number;
+    stopType: string;
+    name?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
+}
 
 interface Props {
-  events: TripEventDTO[];
+  events: TimelineEventDTO[];
 }
 
 export default function TripActivityTimeline({ events }: Props) {
-  const { focusOnEvent, focusedEventId } = useTripMapFocus();
-
   const timelineEvents = useMemo(() => events, [events]);
 
   if (timelineEvents.length === 0) {
     return (
-      <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 text-[12px] text-neutral-500">
+      <div className="rounded-xl border border-white/10 bg-slate-900/40 p-5 text-xs text-slate-400">
         No events logged yet.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
-      <div className="text-sm font-semibold text-neutral-200 mb-4">Recent Activity</div>
-      <ul className="space-y-3 text-[12px] text-neutral-200">
+    <div className="rounded-xl border border-white/10 bg-slate-900/40 p-5 shadow-lg shadow-black/40">
+      <div className="mb-4 text-sm font-semibold text-slate-200">Recent Activity</div>
+      <ul className="space-y-3 text-xs text-slate-100">
         {timelineEvents.map((event) => {
           const accent = eventAccent(event);
-          const isFocused = focusedEventId === event.id;
           const stopLabel = event.stop
             ? `Stop ${event.stop.seq} · ${event.stop.city || event.stop.name || "Unknown"}`
             : null;
-          const hasCoords = typeof event.lat === "number" && typeof event.lon === "number";
           return (
             <li
               key={event.id}
-              className={`grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 ${accent.background} ${isFocused ? "ring-2 ring-emerald-500/50" : ""}`}
+              className={`grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-lg border border-white/10 bg-slate-900/40 p-3 ${accent.background}`}
             >
               <div className={`h-full w-1 rounded ${accent.bar}`} aria-hidden />
               <div className="space-y-1">
-                <div className="text-[12px] font-semibold text-neutral-100">
+                <div className="text-xs font-semibold text-slate-50">
                   {prettyEventType(event.type)}
                 </div>
                 {stopLabel ? (
-                  <div className="text-[11px] text-neutral-400">{stopLabel}</div>
+                  <div className="text-[11px] text-slate-400">{stopLabel}</div>
                 ) : null}
                 {event.notes ? (
-                  <div className="text-[11px] text-neutral-500">{event.notes}</div>
-                ) : null}
-                {hasCoords ? (
-                  <button
-                    type="button"
-                    onClick={() => focusOnEvent(event.id)}
-                    className="text-[11px] font-medium text-emerald-300 hover:text-emerald-200"
-                  >
-                    View on map
-                  </button>
+                  <div className="text-[11px] text-slate-500">{event.notes}</div>
                 ) : null}
               </div>
-              <div className="text-right text-[11px] text-neutral-400">
+              <div className="text-right text-[11px] text-slate-400">
                 <div className="font-mono">{formatTimestamp(event.at)}</div>
                 <div>{relativeTime(event.at)}</div>
               </div>
@@ -119,7 +118,7 @@ function prettyEventType(type: string) {
   }
 }
 
-function eventAccent(event: TripEventDTO) {
+function eventAccent(event: TimelineEventDTO) {
   if (event.type === "TRIP_START") {
     return { bar: "bg-emerald-500", background: "bg-emerald-500/5" };
   }
