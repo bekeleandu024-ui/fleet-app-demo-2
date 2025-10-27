@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import prisma from "@/lib/prisma";
 
 function pctColor(pctNum: number | null | undefined) {
@@ -244,6 +246,12 @@ export default async function TripsPage() {
                           minute: "2-digit",
                         })}
                       </div>
+                      <Link
+                        href={`/drivers/logs/${t.id}`}
+                        className="mt-1 inline-block text-[10px] text-blue-300 hover:text-blue-200"
+                      >
+                        Driver Log
+                      </Link>
                     </td>
 
                     {/* Driver / Unit */}
