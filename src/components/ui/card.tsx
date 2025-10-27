@@ -16,6 +16,9 @@ export function CardTitle({ children }: React.PropsWithChildren) {
   return <h3 className="card-title">{children}</h3>;
 }
 
-export function CardContent({ children }: React.PropsWithChildren) {
-  return <div>{children}</div>;
+export function CardContent({
+  className,
+  children,
+}: React.PropsWithChildren<{ className?: string }>) {
+  return <div className={cx(className)}>{children}</div>;
 }
