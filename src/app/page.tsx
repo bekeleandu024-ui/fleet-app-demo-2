@@ -6,6 +6,46 @@ import Stat from "@/src/components/ui/stat";
 import { getAnalyticsKpis } from "@/src/server/analytics"; // keep as is
 import { getLaneRate } from "@/src/server/integrations/marketRates";
 import { fetchRegulatoryUpdates } from "@/src/server/integrations/compliance";
+import { NAV_SECTIONS } from "@/src/lib/navigation";
+
+const quickActions = [
+  {
+    label: "Book a Load",
+    href: "/book",
+    description: "Qualify, price, and assign freight with AI assistance.",
+    accent: "bg-emerald-500/30",
+  },
+  {
+    label: "Plan & Price",
+    href: "/plan",
+    description: "Scenario-plan coverage and margin guardrails before dispatch.",
+    accent: "bg-sky-500/30",
+  },
+  {
+    label: "Monitor Trips",
+    href: "/trips",
+    description: "Track milestones, risks, and communications in flight.",
+    accent: "bg-amber-500/30",
+  },
+  {
+    label: "Orders Intake",
+    href: "/orders",
+    description: "OCR documents, email queues, and CSV uploads in one workspace.",
+    accent: "bg-purple-500/30",
+  },
+  {
+    label: "Fleet Overview",
+    href: "/fleet",
+    description: "See power units, drivers, and lane assignments at a glance.",
+    accent: "bg-rose-500/30",
+  },
+  {
+    label: "Analytics",
+    href: "/analytics",
+    description: "Margin, dwell, and service guardrails with drill-down analytics.",
+    accent: "bg-indigo-500/30",
+  },
+];
 
 export default async function DashboardPage() {
   const [kpis, laneRate, regulatory] = await Promise.all([
@@ -17,66 +57,86 @@ export default async function DashboardPage() {
   const complianceHighlight = regulatory.find((item) => item.severity !== "info") ?? regulatory[0] ?? null;
 
   return (
-    <div className="space-y-8">
-      {/* Quick Links by area */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>Intake</CardTitle></CardHeader>
-          <CardContent className="grid sm:grid-cols-2 gap-3">
-            <Link href="/orders" className="nav-link no-underline text-slate-200 inline-block">Orders Intake</Link>
-            <Link href="/intake" className="nav-link no-underline text-slate-200 inline-block">OCR, email, CSV workspace</Link>
+    <div className="space-y-10">
+      <div className="grid gap-6 lg:grid-cols-[1.4fr,0.8fr]">
+        <Card className="border border-slate-800/70 bg-slate-900/60 shadow-lg shadow-black/40">
+          <CardHeader>
+            <CardTitle>Where do you want to focus?</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-slate-300">
+              Use the shortcuts below to jump into core workflows across the platform. Each path keeps
+              context intact so handoffs between intake, planning, dispatch, and analytics stay tight.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="group relative overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/70 p-4 transition hover:border-emerald-500/60"
+                >
+                  <div className={`absolute inset-0 opacity-20 blur-2xl ${action.accent}`} />
+                  <div className="relative">
+                    <div className="text-sm font-semibold text-slate-100 group-hover:text-white">
+                      {action.label}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">{action.description}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle>Plan</CardTitle></CardHeader>
-          <CardContent className="grid sm:grid-cols-2 gap-3">
-            <Link href="/plan" className="nav-link no-underline text-slate-200 inline-block">Plan &amp; Price</Link>
-            <Link
-              href="/plan"
-              className="nav-link no-underline text-slate-200 inline-block"
-            >
-              Driver, unit, margin guardrails
-            </Link>
+        <Card className="border border-slate-800/70 bg-slate-900/60 shadow-lg shadow-black/40">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-neutral-200">Live Signals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm text-neutral-400">
+              <li>
+                RPM GTA→CHI trending +7% w/w · Spot {laneRate.rpm.toFixed(2)} {laneRate.source} ({
+                  laneRate.lastUpdated.toLocaleTimeString()
+                })
+              </li>
+              {complianceHighlight ? (
+                <li>
+                  {complianceHighlight.rule}: {complianceHighlight.change} (effective {complianceHighlight.effective})
+                </li>
+              ) : (
+                <li>No active compliance alerts.</li>
+              )}
+            </ul>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader><CardTitle>Fleet</CardTitle></CardHeader>
-          <CardContent className="grid sm:grid-cols-2 gap-3">
-            <Link href="/fleet" className="nav-link no-underline text-slate-200 inline-block">Live Map</Link>
-            <Link
-              href="/fleet"
-              className="nav-link no-underline text-slate-200 inline-block"
-            >
-              Available units &amp; active lanes
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle>Insights</CardTitle></CardHeader>
-          <CardContent className="grid sm:grid-cols-2 gap-3">
-            <Link href="/insights" className="nav-link no-underline text-slate-200 inline-block">Analytics</Link>
-            <Link
-              href="/insights"
-              className="nav-link no-underline text-slate-200 inline-block"
-            >
-              Margin, dwell, guardrails
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Link
-          href="/book"
-          className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40 transition-colors hover:border-emerald-500/60 hover:shadow-emerald-900/30"
-        >
-          <div className="text-sm font-semibold text-neutral-200">Book</div>
-          <div className="mt-2 text-xs text-neutral-400">
-            AI-assisted dispatch console (select qualified order, apply rate &amp; assign)
-          </div>
-        </Link>
       </div>
+
+      <Section title="Explore the platform">
+        {NAV_SECTIONS.map((section) => (
+          <Card
+            key={section.title}
+            className="border border-slate-800/70 bg-slate-900/60 shadow-lg shadow-black/30 transition hover:border-emerald-500/60"
+          >
+            <CardHeader>
+              <CardTitle>{section.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-slate-300">{section.blurb}</p>
+              <div className="flex flex-wrap gap-2">
+                {section.links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-full border border-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-emerald-500/60 hover:text-white"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </Section>
 
       {/* KPI row */}
       <Section title="Today’s KPIs">
@@ -108,28 +168,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </Section>
-
-      <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 shadow-lg shadow-black/40">
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold text-neutral-200">Live Signals</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-neutral-400">
-            <li>
-              RPM GTA→CHI trending +7% w/w · Spot {laneRate.rpm.toFixed(2)} {laneRate.source} ({
-                laneRate.lastUpdated.toLocaleTimeString()
-              })
-            </li>
-            {complianceHighlight ? (
-              <li>
-                {complianceHighlight.rule}: {complianceHighlight.change} (effective {complianceHighlight.effective})
-              </li>
-            ) : (
-              <li>No active compliance alerts.</li>
-            )}
-          </ul>
-        </CardContent>
-      </Card>
     </div>
   );
 }
