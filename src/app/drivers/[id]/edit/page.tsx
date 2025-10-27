@@ -15,6 +15,7 @@ async function updateDriver(id: string, formData: FormData) {
     where: { id },
     data: {
       name,
+      type: formData.get("type")?.toString().trim() || null,
       license: formData.get("license")?.toString().trim() || null,
       homeBase: formData.get("homeBase")?.toString().trim() || null,
       active: formData.get("active") === "on",
@@ -45,6 +46,7 @@ export default async function EditDriverPage({ params }: { params: { id: string 
       <DriverForm
         initialValues={{
           name: driver.name,
+          type: driver.type ?? "",
           license: driver.license ?? "",
           homeBase: driver.homeBase ?? "",
           active: driver.active,

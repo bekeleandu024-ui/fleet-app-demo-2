@@ -20,6 +20,7 @@ export default async function DriversPage() {
           <thead className="bg-zinc-900/60 text-zinc-400">
             <tr>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Name</th>
+              <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Type</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Home Base</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Active</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Actions</th>
@@ -29,6 +30,7 @@ export default async function DriversPage() {
             {drivers.map((driver) => (
               <tr key={driver.id} className="hover:bg-zinc-900/50">
                 <td className="px-4 py-3 text-white">{driver.name}</td>
+                <td className="px-4 py-3 text-zinc-300">{driver.type ?? "—"}</td>
                 <td className="px-4 py-3 text-zinc-300">{driver.homeBase ?? "—"}</td>
                 <td className="px-4 py-3">
                   <span
@@ -50,7 +52,7 @@ export default async function DriversPage() {
             ))}
             {drivers.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
                   No drivers yet.
                 </td>
               </tr>

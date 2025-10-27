@@ -51,6 +51,10 @@ export default async function TripEditPage({ params }: { params: { id: string } 
     totalCost: toNumber(trip.totalCost),
     profit: toNumber(trip.profit),
     marginPct: toNumber(trip.marginPct),
+    driverType: trip.driverRef?.type ?? null,
+    unitWeeklyFixedCost: trip.unitRef?.weeklyFixedCost
+      ? Number(trip.unitRef.weeklyFixedCost)
+      : null,
   };
 
   const safeRates = rates.map((rate) => ({
@@ -68,8 +72,16 @@ export default async function TripEditPage({ params }: { params: { id: string } 
     label: [rate.type, rate.zone].filter(Boolean).join(" • ") || "Rate",
   }));
 
-  const driverOptions = drivers.map((driver) => ({ id: driver.id, name: driver.name }));
-  const unitOptions = units.map((unit) => ({ id: unit.id, code: unit.code }));
+  const driverOptions = drivers.map((driver) => ({
+    id: driver.id,
+    name: driver.name,
+    type: driver.type ?? null,
+  }));
+  const unitOptions = units.map((unit) => ({
+    id: unit.id,
+    code: unit.code,
+    weeklyFixedCost: unit.weeklyFixedCost ? Number(unit.weeklyFixedCost) : null,
+  }));
 
   const typeSet = new Set<string>();
   const zoneSet = new Set<string>();

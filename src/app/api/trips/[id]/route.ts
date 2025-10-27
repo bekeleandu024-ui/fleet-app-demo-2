@@ -90,8 +90,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       marginPct: toDecimal(data.marginPct),
     },
     include: {
-      driverRef: { select: { id: true, name: true } },
-      unitRef: { select: { id: true, code: true } },
+      driverRef: { select: { id: true, name: true, type: true } },
+      unitRef: { select: { id: true, code: true, weeklyFixedCost: true } },
       rateRef: { select: { id: true, type: true, zone: true } },
     },
   });
@@ -114,8 +114,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     profit: updated.profit ? Number(updated.profit) : null,
     marginPct: updated.marginPct ? Number(updated.marginPct) : null,
     driverRef: updated.driverRef,
-    unitRef: updated.unitRef,
+    unitRef: updated.unitRef
+      ? {
+          ...updated.unitRef,
+          weeklyFixedCost: updated.unitRef.weeklyFixedCost
+            ? Number(updated.unitRef.weeklyFixedCost)
+            : null,
+        }
+      : null,
     rateRef: updated.rateRef,
+    driverType: updated.driverRef?.type ?? null,
+    unitWeeklyFixedCost: updated.unitRef?.weeklyFixedCost
+      ? Number(updated.unitRef.weeklyFixedCost)
+      : null,
   };
 
   return NextResponse.json({ ok: true, trip: safeTrip });

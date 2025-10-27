@@ -6,6 +6,7 @@ type UnitFormValues = {
   code: string;
   type: string;
   homeBase: string;
+  weeklyFixedCost: string;
   active: boolean;
 };
 
@@ -20,6 +21,7 @@ export default function UnitForm({ initialValues, action, submitLabel }: UnitFor
     code: initialValues?.code ?? "",
     type: initialValues?.type ?? "",
     homeBase: initialValues?.homeBase ?? "",
+    weeklyFixedCost: initialValues?.weeklyFixedCost ?? "",
     active: initialValues?.active ?? true,
   });
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +78,22 @@ export default function UnitForm({ initialValues, action, submitLabel }: UnitFor
           name="homeBase"
           value={values.homeBase}
           onChange={(event) => setValues((prev) => ({ ...prev, homeBase: event.target.value }))}
+          className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-white"
+        />
+      </div>
+      <div className="grid gap-1">
+        <label htmlFor="weeklyFixedCost" className="text-xs uppercase tracking-wide text-zinc-400">
+          Weekly Fixed Cost ($/week)
+        </label>
+        <input
+          id="weeklyFixedCost"
+          name="weeklyFixedCost"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="e.g. 675"
+          value={values.weeklyFixedCost}
+          onChange={(event) => setValues((prev) => ({ ...prev, weeklyFixedCost: event.target.value }))}
           className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-white"
         />
       </div>

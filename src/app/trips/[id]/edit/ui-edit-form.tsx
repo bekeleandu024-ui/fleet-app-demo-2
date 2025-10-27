@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type DriverOption = { id: string; name: string };
-type UnitOption = { id: string; code: string };
+type DriverOption = { id: string; name: string; type?: string | null };
+type UnitOption = { id: string; code: string; weeklyFixedCost?: number | null };
 type RateOption = { id: string; type: string; zone: string; fixedCPM: number; wageCPM: number; addOnsCPM: number; rollingCPM: number };
 type RateSelectOption = { id: string; label: string };
 
@@ -28,6 +28,8 @@ type TripValues = {
   totalCost: number | null;
   profit: number | null;
   marginPct: number | null;
+  driverType?: string | null;
+  unitWeeklyFixedCost?: number | null;
 };
 
 type Props = {
