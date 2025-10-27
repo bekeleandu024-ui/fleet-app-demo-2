@@ -36,6 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/drivers" className="hover:text-white transition-colors">
                   Drivers
                 </Link>
+                <Link href="/fleet" className="hover:text-white transition-colors">
+                  Fleet
+                </Link>
                 <Link href="/units" className="hover:text-white transition-colors">
                   Units
                 </Link>
