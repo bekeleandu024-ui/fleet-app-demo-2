@@ -1,6 +1,25 @@
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 
+function formatWeeklyFixedCost(value: unknown) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  const number = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(number)) {
+    return "—";
+  }
+
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(number);
+
+  return `${formatted} / week`;
+}
+
 export default async function UnitsPage() {
   const units = await prisma.unit.findMany({ orderBy: { code: "asc" } });
 
@@ -22,6 +41,7 @@ export default async function UnitsPage() {
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Code</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Type</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Home Base</th>
+              <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Weekly Fixed Cost</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Active</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Actions</th>
             </tr>
@@ -32,6 +52,7 @@ export default async function UnitsPage() {
                 <td className="px-4 py-3 text-white">{unit.code}</td>
                 <td className="px-4 py-3 text-zinc-300">{unit.type ?? "—"}</td>
                 <td className="px-4 py-3 text-zinc-300">{unit.homeBase ?? "—"}</td>
+                <td className="px-4 py-3 text-zinc-300">{formatWeeklyFixedCost(unit.weeklyFixedCost)}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
@@ -52,7 +73,7 @@ export default async function UnitsPage() {
             ))}
             {units.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
                   No units yet.
                 </td>
               </tr>

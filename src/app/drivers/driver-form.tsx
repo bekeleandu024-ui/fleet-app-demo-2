@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 type DriverFormValues = {
   name: string;
+  type: string;
   license: string;
   homeBase: string;
   active: boolean;
@@ -18,6 +19,7 @@ type DriverFormProps = {
 export default function DriverForm({ initialValues, action, submitLabel }: DriverFormProps) {
   const [values, setValues] = useState<DriverFormValues>({
     name: initialValues?.name ?? "",
+    type: initialValues?.type ?? "",
     license: initialValues?.license ?? "",
     homeBase: initialValues?.homeBase ?? "",
     active: initialValues?.active ?? true,
@@ -52,6 +54,19 @@ export default function DriverForm({ initialValues, action, submitLabel }: Drive
           required
           value={values.name}
           onChange={(event) => setValues((prev) => ({ ...prev, name: event.target.value }))}
+          className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-white"
+        />
+      </div>
+      <div className="grid gap-1">
+        <label htmlFor="type" className="text-xs uppercase tracking-wide text-zinc-400">
+          Driver Type
+        </label>
+        <input
+          id="type"
+          name="type"
+          placeholder="COM, OO, RNR"
+          value={values.type}
+          onChange={(event) => setValues((prev) => ({ ...prev, type: event.target.value }))}
           className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-white"
         />
       </div>

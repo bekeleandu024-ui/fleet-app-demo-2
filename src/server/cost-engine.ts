@@ -42,14 +42,6 @@ async function getRate(rateKey: string, category?: string) {
   return 0;
 }
 
-async function truckWeekly(unitCode?: string | null) {
-  if (!unitCode) {
-    return 0;
-  }
-
-  return getRate("TRUCK_WK", unitCode);
-}
-
 async function sumWeekMiles(unitCode: string | null | undefined, weekStart: Date) {
   if (!unitCode) {
     return 0;
@@ -141,7 +133,9 @@ export async function recalcTripCost(tripId: string) {
     };
   }
 
-  const type = (trip.type || "COM").toUpperCase();
+  // Driver.type is the source of BASE_WAGE/FUEL_CPM categorization.
+  const driverType = trip.driverRef?.type?.trim() || trip.type || "COM";
+  const type = driverType.toUpperCase();
   const regionSource = trip.zone || trip.driverRef?.homeBase || "GLOBAL";
   const region = regionSource ? regionSource.trim().toUpperCase() : "GLOBAL";
   const unitCode = (trip.unit || trip.unitRef?.code || "").trim();
@@ -178,7 +172,13 @@ export async function recalcTripCost(tripId: string) {
     (await getRate("PP_WK")) +
     (await getRate("INS_WK")) +
     (await getRate("TRAILER_WK"));
-  const truckWeeklyCost = await truckWeekly(unitCode);
+  // Unit.weeklyFixedCost now replaces RateSetting("TRUCK_WK", unitCode).
+  let truckWeeklyCost = 0;
+  if (trip.unitRef?.weeklyFixedCost !== null && trip.unitRef?.weeklyFixedCost !== undefined) {
+    truckWeeklyCost = Number(trip.unitRef.weeklyFixedCost);
+  } else if (unitCode) {
+    truckWeeklyCost = await getRate("TRUCK_WK", unitCode);
+  }
   const weeklyFixed = weeklyFixedBase + truckWeeklyCost;
 
   const tripWeekStart = trip.weekStart

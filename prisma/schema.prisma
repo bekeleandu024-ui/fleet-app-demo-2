@@ -69,6 +69,7 @@ model Event {
 model Driver {
   id       String  @id @default(cuid())
   name     String  @unique
+  type     String?
   license  String?
   homeBase String?
   active   Boolean @default(true)
@@ -81,6 +82,7 @@ model Unit {
   type     String?
   homeBase String?
   active   Boolean @default(true)
+  weeklyFixedCost Decimal?
   trips    Trip[]  @relation("TripUnit")
 }
 

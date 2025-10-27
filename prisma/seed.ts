@@ -13,16 +13,48 @@ async function main() {
   await prisma.unit.deleteMany();
 
   const drivers = await Promise.all([
-    prisma.driver.create({ data: { name: "Jamie Avery", license: "TX-8891", homeBase: "Dallas", active: true } }),
-    prisma.driver.create({ data: { name: "Morgan Lee", license: "CA-1133", homeBase: "Los Angeles", active: true } }),
-    prisma.driver.create({ data: { name: "Carlos Diaz", license: "NM-4488", homeBase: "Albuquerque", active: true } }),
-    prisma.driver.create({ data: { name: "Priya Patel", license: "AZ-7710", homeBase: "Phoenix", active: false } }),
+    prisma.driver.create({
+      data: { name: "Jamie Avery", type: "COM", license: "TX-8891", homeBase: "Dallas", active: true },
+    }),
+    prisma.driver.create({
+      data: { name: "Morgan Lee", type: "OO", license: "CA-1133", homeBase: "Los Angeles", active: true },
+    }),
+    prisma.driver.create({
+      data: { name: "Carlos Diaz", type: "COM", license: "NM-4488", homeBase: "Albuquerque", active: true },
+    }),
+    prisma.driver.create({
+      data: { name: "Priya Patel", type: "RNR", license: "AZ-7710", homeBase: "Phoenix", active: false },
+    }),
   ]);
 
   const units = await Promise.all([
-    prisma.unit.create({ data: { code: "TRK-101", type: "53' Dry Van", homeBase: "Dallas", active: true } }),
-    prisma.unit.create({ data: { code: "TRK-202", type: "Flatbed", homeBase: "Phoenix", active: true } }),
-    prisma.unit.create({ data: { code: "TRK-303", type: "53' Reefer", homeBase: "Los Angeles", active: true } }),
+    prisma.unit.create({
+      data: {
+        code: "TRK-101",
+        type: "53' Dry Van",
+        homeBase: "Dallas",
+        active: true,
+        weeklyFixedCost: new Prisma.Decimal(650),
+      },
+    }),
+    prisma.unit.create({
+      data: {
+        code: "TRK-202",
+        type: "Flatbed",
+        homeBase: "Phoenix",
+        active: true,
+        weeklyFixedCost: new Prisma.Decimal(620),
+      },
+    }),
+    prisma.unit.create({
+      data: {
+        code: "TRK-303",
+        type: "53' Reefer",
+        homeBase: "Los Angeles",
+        active: true,
+        weeklyFixedCost: new Prisma.Decimal(710),
+      },
+    }),
   ]);
 
   const rates = await Promise.all([

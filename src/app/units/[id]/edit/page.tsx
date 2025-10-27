@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { notFound, redirect } from "next/navigation";
 import UnitForm from "../../unit-form";
 import prisma from "@/lib/prisma";
@@ -11,6 +12,16 @@ async function updateUnit(id: string, formData: FormData) {
     throw new Error("Code is required");
   }
 
+  const weeklyFixedCostInput = formData.get("weeklyFixedCost");
+  let weeklyFixedCost = 0;
+  if (weeklyFixedCostInput !== null && weeklyFixedCostInput !== "") {
+    const parsed = Number(weeklyFixedCostInput);
+    if (Number.isNaN(parsed)) {
+      throw new Error("Weekly fixed cost must be a number");
+    }
+    weeklyFixedCost = parsed;
+  }
+
   await prisma.unit.update({
     where: { id },
     data: {
@@ -18,6 +29,7 @@ async function updateUnit(id: string, formData: FormData) {
       type: formData.get("type")?.toString().trim() || null,
       homeBase: formData.get("homeBase")?.toString().trim() || null,
       active: formData.get("active") === "on",
+      weeklyFixedCost: new Prisma.Decimal(weeklyFixedCost),
     },
   });
 
@@ -47,6 +59,7 @@ export default async function EditUnitPage({ params }: { params: { id: string } 
           code: unit.code,
           type: unit.type ?? "",
           homeBase: unit.homeBase ?? "",
+          weeklyFixedCost: unit.weeklyFixedCost ? unit.weeklyFixedCost.toString() : "",
           active: unit.active,
         }}
         action={action}

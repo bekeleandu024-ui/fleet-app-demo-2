@@ -14,6 +14,7 @@ async function createDriver(formData: FormData) {
   await prisma.driver.create({
     data: {
       name,
+      type: formData.get("type")?.toString().trim() || null,
       license: formData.get("license")?.toString().trim() || null,
       homeBase: formData.get("homeBase")?.toString().trim() || null,
       active: formData.get("active") === "on",
