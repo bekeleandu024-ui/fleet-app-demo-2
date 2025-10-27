@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+
 import prisma from "@/lib/prisma";
+import { analyzeOrderForIssues } from "@/server/analyze-order";
 
 const orderSchema = z.object({
   customer: z.string().min(1, "Customer is required"),
@@ -12,6 +14,7 @@ const orderSchema = z.object({
   delWindowEnd: z.string().optional().nullable(),
   requiredTruck: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  source: z.string().optional().nullable(),
 });
 
 function toDate(value?: string | null) {
@@ -38,6 +41,28 @@ export async function POST(request: Request) {
 
   const data = result.data;
 
+  const analysis = await analyzeOrderForIssues({
+    customer: data.customer,
+    origin: data.origin,
+    destination: data.destination,
+    puWindowStart: data.puWindowStart,
+    puWindowEnd: data.puWindowEnd,
+    delWindowStart: data.delWindowStart,
+    delWindowEnd: data.delWindowEnd,
+    requiredTruck: data.requiredTruck,
+    notes: data.notes,
+  });
+
+  const status = analysis.missingFields.length === 0 ? "Qualified" : "PendingInfo";
+  const qualificationNotes = [
+    analysis.summary.textSummary,
+    analysis.slaWarnings.join("; "),
+    analysis.blacklistHits.join("; "),
+    analysis.borderWarnings.join("; "),
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
   const order = await prisma.order.create({
     data: {
       customer: data.customer,
@@ -49,8 +74,18 @@ export async function POST(request: Request) {
       delWindowEnd: toDate(data.delWindowEnd),
       requiredTruck: data.requiredTruck?.trim() || null,
       notes: data.notes?.trim() || null,
+      status,
+      source: data.source?.trim() || null,
+      qualificationNotes: qualificationNotes || null,
     },
   });
 
-  return NextResponse.json({ ok: true, order }, { status: 201 });
+  return NextResponse.json(
+    {
+      ok: true,
+      orderId: order.id,
+      status,
+    },
+    { status: 201 }
+  );
 }

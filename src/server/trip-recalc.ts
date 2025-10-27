@@ -32,7 +32,7 @@ function computeTotals(
     return { totalCPM: null, totalCost: null, profit: revenue !== null ? revenue : null, marginPct: null };
   }
 
-  const totalCPM = parts.reduce((sum, value) => sum + (value ?? 0), 0);
+  const totalCPM = parts.reduce<number>((sum, value) => sum + (value ?? 0), 0);
   const totalCost = totalCPM * miles;
   const profit = revenue !== null ? revenue - totalCost : null;
   const marginPct = revenue && revenue !== 0 && profit !== null ? profit / revenue : null;

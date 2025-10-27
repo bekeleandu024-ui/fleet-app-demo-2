@@ -8,51 +8,86 @@ generator client {
 }
 
 model Order {
-  id             String   @id @default(cuid())
-  customer       String
-  origin         String
-  destination    String
-  puWindowStart  DateTime?
-  puWindowEnd    DateTime?
-  delWindowStart DateTime?
-  delWindowEnd   DateTime?
-  requiredTruck  String?
-  notes          String?
-  createdAt      DateTime @default(now())
-  trips          Trip[]
+  id                   String              @id @default(cuid())
+  customer             String
+  origin               String
+  destination          String
+  puWindowStart        DateTime?
+  puWindowEnd          DateTime?
+  delWindowStart       DateTime?
+  delWindowEnd         DateTime?
+  requiredTruck        String?
+  notes                String?
+  status               String              @default("PendingInfo")
+  qualificationNotes   String?
+  source               String?
+  lastSuggestedDriverId String?
+  lastSuggestedUnitId  String?
+  lastSuggestedRateId  String?
+  lastSuggestedPlan    Json?
+  lastSuggestionReason String?
+  lastSuggestedBy      String?
+  lastSuggestionAt     DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  trips                Trip[]
+  intakeAttachments    IntakeAttachment[]
 }
 
 model Trip {
-  id         String   @id @default(cuid())
-  orderId    String?
-  order      Order?   @relation(fields: [orderId], references: [id])
-  driver     String
-  unit       String
-  tripStart  DateTime?
-  tripEnd    DateTime?
-  weekStart  DateTime?
-  type       String?
-  zone       String?
-  miles      Decimal
-  revenue    Decimal?
-  fixedCPM   Decimal?
-  wageCPM    Decimal?
-  addOnsCPM  Decimal?
-  rollingCPM Decimal?
-  totalCPM   Decimal?
-  totalCost  Decimal?
-  profit     Decimal?
-  marginPct  Decimal?
-  status     String   @default("Created")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now()) @updatedAt
-  driverId   String?
-  unitId     String?
-  rateId     String?
-  driverRef  Driver?  @relation("TripDriver", fields: [driverId], references: [id])
-  unitRef    Unit?    @relation("TripUnit", fields: [unitId], references: [id])
-  rateRef    Rate?    @relation("TripRate", fields: [rateId], references: [id])
-  events     Event[]
+  id                   String    @id @default(cuid())
+  orderId              String?
+  order                Order?    @relation(fields: [orderId], references: [id])
+  driver               String
+  unit                 String
+  tripStart            DateTime?
+  tripEnd              DateTime?
+  weekStart            DateTime?
+  type                 String?
+  zone                 String?
+  miles                Decimal
+  plannedMiles         Decimal?
+  actualMiles          Decimal?
+  revenue              Decimal?
+  fixedCPM             Decimal?
+  wageCPM              Decimal?
+  addOnsCPM            Decimal?
+  rollingCPM           Decimal?
+  totalCPM             Decimal?
+  totalCost            Decimal?
+  profit               Decimal?
+  marginPct            Decimal?
+  finalMarginPct       Decimal?
+  fuelSurcharge        Decimal?
+  status               String    @default("Created")
+  etaPrediction        DateTime?
+  delayRiskPct         Decimal?
+  etaBaseline          DateTime?
+  lastCheckInAt        DateTime?
+  nextCommitmentAt     DateTime?
+  marketRPM            Decimal?
+  originLat            Float?
+  originLon            Float?
+  destLat              Float?
+  destLon              Float?
+  lastSuggestedDriverId String?
+  lastSuggestedUnitId  String?
+  lastSuggestedRateId  String?
+  lastSuggestedPlan    Json?
+  lastSuggestionReason String?
+  lastSuggestedBy      String?
+  lastSuggestionAt     DateTime?
+  customerMessageAudit Json?
+  driverMessageAudit   Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  driverId             String?
+  unitId               String?
+  rateId               String?
+  driverRef            Driver?   @relation("TripDriver", fields: [driverId], references: [id])
+  unitRef              Unit?     @relation("TripUnit", fields: [unitId], references: [id])
+  rateRef              Rate?     @relation("TripRate", fields: [rateId], references: [id])
+  events               Event[]
 }
 
 model Event {
@@ -67,29 +102,47 @@ model Event {
 }
 
 model Driver {
-  id       String  @id @default(cuid())
-  name     String  @unique
-  type     String?
-  license  String?
-  homeBase String?
-  active   Boolean @default(true)
-  trips    Trip[]  @relation("TripDriver")
+  id                   String   @id @default(cuid())
+  name                 String   @unique
+  type                 String?
+  license              String?
+  homeBase             String?
+  active               Boolean  @default(true)
+  hoursAvailableToday  Float?
+  milesLast7d          Int?
+  onTimeScore          Float?
+  fastApproved         Boolean? @default(false)
+  preferredCustomers   Json?
+  blockedCustomers     Json?
+  notes                String?
+  trips                Trip[]   @relation("TripDriver")
 }
 
 model Unit {
-  id       String  @id @default(cuid())
-  code     String  @unique
-  type     String?
-  homeBase String?
-  active   Boolean @default(true)
-  weeklyFixedCost Decimal?
-  trips    Trip[]  @relation("TripUnit")
+  id               String   @id @default(cuid())
+  code             String   @unique
+  type             String?
+  capacity         String?
+  homeBase         String?
+  active           Boolean  @default(true)
+  isOnHold         Boolean  @default(false)
+  weeklyFixedCost  Decimal?
+  status           String?  @default("Available")
+  availableFrom    DateTime?
+  lastKnownLat     Float?
+  lastKnownLon     Float?
+  lastKnownAt      DateTime?
+  lastMarginPct    Decimal?
+  restrictions     Json?
+  trips            Trip[]   @relation("TripUnit")
 }
 
 model Rate {
-  id         String  @id @default(cuid())
+  id         String   @id @default(cuid())
   type       String?
   zone       String?
+  rpm        Decimal?
+  fuelSurcharge Decimal?
   fixedCPM   Decimal
   wageCPM    Decimal
   addOnsCPM  Decimal
@@ -107,7 +160,28 @@ model RateSetting {
   unit      String
   note      String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  updatedAt DateTime @updatedAt
   @@unique([rateKey, category])
   @@index([category])
+}
+
+model IntakeAttachment {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  kind      String
+  rawText   String?
+  createdAt DateTime @default(now())
+}
+
+model Rule {
+  id        String   @id @default(cuid())
+  ruleKey   String
+  scope     String
+  value     String
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([ruleKey, scope])
+  @@index([scope])
 }

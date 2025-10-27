@@ -1,29 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { parseOcrToOrder, type ParsedOrder } from "@/lib/ocr";
+import { loadTesseract, type TesseractLike } from "@/lib/tesseract-loader";
+import {
+  parseOcrToOrder,
+  type ParsedOrderDraft,
+  type ParsedOrderField,
+} from "@/lib/ocr";
 
 type Tone = "info" | "success" | "error";
-
-type TesseractLike = {
-  recognize: (
-    image: string | File | Blob,
-    lang?: string,
-    options?: { logger?: (m: { progress?: number; status?: string }) => void }
-  ) => Promise<{ data: { text: string; confidence: number } }>;
-};
 
 let tesseractModule: Promise<TesseractLike> | null = null;
 
 async function getTesseract() {
   if (!tesseractModule) {
-    tesseractModule = import("tesseract.js").then((mod) => {
-      const candidate = (mod.default ?? mod) as unknown as TesseractLike;
-      if (candidate && typeof candidate.recognize === "function") {
-        return candidate;
-      }
-      throw new Error("Failed to load tesseract.js");
-    });
+    tesseractModule = loadTesseract();
   }
   return tesseractModule;
 }
@@ -37,7 +28,9 @@ type ParsedPayload = {
   ok?: boolean;
   ocrConfidence?: number;
   text?: string;
-  parsed?: ParsedOrder;
+  parsed?: ParsedOrderDraft;
+  warnings?: string[];
+  fields?: ParsedOrderField[];
   error?: string;
 };
 
@@ -46,7 +39,22 @@ type Props = {
   actions?: React.ReactNode;
 };
 
-export function OcrDropBox({ onParsed, actions }: Props) {
+function toneClass(tone: Tone) {
+  switch (tone) {
+    case "success":
+      return "text-emerald-400";
+    case "error":
+      return "text-rose-400";
+    default:
+      return "text-zinc-300";
+  }
+}
+
+function StatusMessage({ status }: { status: StatusState }) {
+  return <div className={`mt-4 text-sm ${toneClass(status.tone)}`}>{status.text}</div>;
+}
+
+export default function OcrDropBox({ onParsed, actions }: Props) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<StatusState>({ text: "Waiting for image", tone: "info" });
   const [progress, setProgress] = useState(0);
@@ -85,7 +93,14 @@ export function OcrDropBox({ onParsed, actions }: Props) {
         const confidence = Number(result.data.confidence ?? 0);
         const parsed = parseOcrToOrder(text);
         setStatus({ text: "Text captured. Review and apply fields below.", tone: "success" });
-        onParsed({ ok: true, ocrConfidence: confidence, text, parsed });
+        onParsed({
+          ok: true,
+          ocrConfidence: confidence,
+          text,
+          parsed: parsed.parsedOrder,
+          warnings: parsed.warnings,
+          fields: parsed.fields,
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         setStatus({ text: message, tone: "error" });
@@ -138,12 +153,6 @@ export function OcrDropBox({ onParsed, actions }: Props) {
     [busy, handleFiles]
   );
 
-  const toneClasses: Record<Tone, string> = {
-    info: "text-zinc-300",
-    success: "text-emerald-400",
-    error: "text-rose-400",
-  };
-
   return (
     <div className="flex flex-col gap-4">
       <div
@@ -175,14 +184,11 @@ export function OcrDropBox({ onParsed, actions }: Props) {
         />
         <p className="text-lg font-semibold text-zinc-200">Paste a screenshot here or drag an image file</p>
         <p className="text-sm text-zinc-400">Win+Shift+S → Ctrl+V to paste</p>
-        <div className={`mt-4 text-sm ${toneClasses[status.tone]}`}>{status.text}</div>
+        <StatusMessage status={status} />
         {busy && (
           <div className="mt-4 flex w-full max-w-sm flex-col items-center gap-2">
             <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
-              <div
-                className="h-full rounded-full bg-sky-500 transition-all"
-                style={{ width: `${progress}%` }}
-              />
+              <div className="h-full rounded-full bg-sky-500 transition-all" style={{ width: `${progress}%` }} />
             </div>
             <span className="text-xs text-zinc-400">{progress}%</span>
           </div>
@@ -192,11 +198,10 @@ export function OcrDropBox({ onParsed, actions }: Props) {
       {previewUrl && (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
           <p className="mb-2 text-sm font-semibold text-zinc-300">Preview</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={previewUrl} alt="OCR preview" className="max-h-96 w-full rounded-lg object-contain" />
         </div>
       )}
     </div>
   );
 }
-
-export default OcrDropBox;

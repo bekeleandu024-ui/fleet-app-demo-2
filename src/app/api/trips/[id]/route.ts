@@ -30,7 +30,16 @@ function toDecimal(value: number | null) {
   return value === null || value === undefined ? null : new Prisma.Decimal(value);
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: Request,
+  context: { params: Promise<{ id: string }> } | { params: { id: string } }
+) {
+  const paramsOrPromise = context.params;
+  const params = paramsOrPromise instanceof Promise ? await paramsOrPromise : paramsOrPromise;
+  const { id } = params ?? {};
+  if (!id) {
+    return NextResponse.json({ error: "Trip id is required" }, { status: 400 });
+  }
   const json = await request.json().catch(() => null);
   if (!json) {
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
@@ -68,7 +77,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 
   const updated = await prisma.trip.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       driverId: data.driverId ?? null,
       unitId: data.unitId ?? null,

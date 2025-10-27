@@ -1,4 +1,4 @@
-export type ParsedOrder = {
+export type ParsedOrderDraft = {
   customer?: string;
   origin?: string;
   destination?: string;
@@ -10,10 +10,26 @@ export type ParsedOrder = {
   notes?: string;
 };
 
-const windowSeparators = [" to ", " - ", "–", "—"];
+export type ParsedOrderField = {
+  field: keyof ParsedOrderDraft;
+  value: string;
+  sourceText: string;
+};
+
+export type ParsedOrderResult = {
+  parsedOrder: ParsedOrderDraft;
+  warnings: string[];
+  fields: ParsedOrderField[];
+};
+
+const windowSeparators = [" to ", " - ", "–", "—"] as const;
 
 function normalizeWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function stripLeadingLabel(value: string) {
+  return value.replace(/^[^:]*:\s*/, "");
 }
 
 function toIsoLike(value?: string) {
@@ -50,12 +66,27 @@ function extractWindow(line: string) {
   };
 }
 
-export function parseOcrToOrder(rawText: string): ParsedOrder {
+function addField(
+  result: ParsedOrderResult,
+  field: keyof ParsedOrderDraft,
+  value?: string,
+  sourceText?: string
+) {
+  if (!value) return;
+  if (!result.parsedOrder[field]) {
+    result.parsedOrder[field] = value;
+    if (sourceText) {
+      result.fields.push({ field, value, sourceText });
+    }
+  }
+}
+
+export function parseOcrToOrder(rawText: string): ParsedOrderResult {
   if (!rawText) {
-    return {};
+    return { parsedOrder: {}, warnings: ["No text detected"], fields: [] };
   }
 
-  const result: ParsedOrder = {};
+  const result: ParsedOrderResult = { parsedOrder: {}, warnings: [], fields: [] };
   const lines = rawText
     .split(/\r?\n/)
     .map((line) => normalizeWhitespace(line))
@@ -64,66 +95,81 @@ export function parseOcrToOrder(rawText: string): ParsedOrder {
   for (const line of lines) {
     const lower = line.toLowerCase();
 
-    if (!result.customer && /customer|shipper|account/.test(lower)) {
-      const customer = line.replace(/.*?:\s*/, "").trim();
+    if (!result.parsedOrder.customer && /customer|shipper|account/.test(lower)) {
+      const customer = stripLeadingLabel(line).trim();
       if (customer) {
-        result.customer = customer;
+        addField(result, "customer", customer, line);
         continue;
       }
     }
 
-    if (!result.origin && /(pickup|origin|from)/.test(lower)) {
+    if (!result.parsedOrder.origin && /(pickup|origin|from)/.test(lower)) {
       const origin = line.replace(/.*?(pickup|origin|from)[:\-]?/i, "").trim();
       if (origin) {
-        result.origin = origin;
+        addField(result, "origin", origin, line);
         const window = extractWindow(line);
-        if (window.start && !result.puWindowStart) result.puWindowStart = window.start;
-        if (window.end && !result.puWindowEnd) result.puWindowEnd = window.end;
+        addField(result, "puWindowStart", window.start, line);
+        addField(result, "puWindowEnd", window.end, line);
         continue;
       }
     }
 
-    if (!result.destination && /(delivery|drop|dest|to)/.test(lower)) {
+    if (!result.parsedOrder.destination && /(delivery|drop|dest|to)/.test(lower)) {
       const destination = line.replace(/.*?(delivery|drop|dest|to)[:\-]?/i, "").trim();
       if (destination) {
-        result.destination = destination;
+        addField(result, "destination", destination, line);
         const window = extractWindow(line);
-        if (window.start && !result.delWindowStart) result.delWindowStart = window.start;
-        if (window.end && !result.delWindowEnd) result.delWindowEnd = window.end;
+        addField(result, "delWindowStart", window.start, line);
+        addField(result, "delWindowEnd", window.end, line);
         continue;
       }
     }
 
-    if (!result.requiredTruck && /(truck|equipment|trailer)/.test(lower)) {
+    if (!result.parsedOrder.requiredTruck && /(truck|equipment|trailer)/.test(lower)) {
       const requiredTruck = line.replace(/.*?(truck|equipment|trailer)[:\-]?/i, "").trim();
       if (requiredTruck) {
-        result.requiredTruck = requiredTruck;
+        addField(result, "requiredTruck", requiredTruck, line);
         continue;
       }
     }
 
-    if (!result.customer && /^[A-Z][\w\s&.,-]{4,}$/.test(line) && line.split(" ").length <= 5) {
-      result.customer = line.trim();
+    if (!result.parsedOrder.customer && /^[A-Z][\w\s&.,-]{4,}$/.test(line) && line.split(" ").length <= 5) {
+      addField(result, "customer", line.trim(), line);
       continue;
     }
 
-    if (!result.notes && /(notes|instructions|comment)/.test(lower)) {
-      const note = line.replace(/.*?(notes|instructions|comment)[:\-]?/i, "").trim();
+    if (!result.parsedOrder.notes && /(notes|instructions|comment)/.test(lower)) {
+      const note = stripLeadingLabel(line).trim();
       if (note) {
-        result.notes = note;
+        addField(result, "notes", note, line);
         continue;
       }
     }
   }
 
-  if (!result.notes) {
+  if (!result.parsedOrder.notes) {
     const trailing = lines.slice(-2).join(". ");
     if (trailing && trailing.length <= 160) {
-      result.notes = trailing;
+      addField(result, "notes", trailing, trailing);
     }
+  }
+
+  const requiredFields: Array<keyof ParsedOrderDraft> = ["customer", "origin", "destination"];
+  for (const field of requiredFields) {
+    if (!result.parsedOrder[field]) {
+      result.warnings.push(`Missing likely ${field}`);
+    }
+  }
+
+  if (!result.parsedOrder.puWindowEnd && result.parsedOrder.puWindowStart) {
+    result.warnings.push("Pickup window end missing");
+  }
+  if (!result.parsedOrder.delWindowEnd && result.parsedOrder.delWindowStart) {
+    result.warnings.push("Delivery window end missing");
   }
 
   return result;
 }
 
+export type ParsedOrder = ParsedOrderDraft;
 export const parseOrderFromText = parseOcrToOrder;
