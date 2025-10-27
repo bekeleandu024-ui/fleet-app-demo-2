@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import LogButtons from "./LogButtons";
 import TripActivityTimeline from "./TripActivityTimeline";
 import TripMapAndStatus from "./TripMapAndStatus";
-import type { TripEventDTO, TripStopDTO } from "./TripMapAndStatus";
+import type { EventDTO, StopDTO } from "./TripMapClient";
 import prisma from "@/lib/prisma";
 import { getTripOperationalStatus } from "@/server/tripStatus";
 
@@ -30,8 +30,8 @@ export default async function DriverLogPage({
 
   if (!trip) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0a0f1c] text-neutral-200">
-        <div className="text-center text-sm text-neutral-400">Trip not found.</div>
+      <main className="flex min-h-screen items-center justify-center bg-[#0a0f1c] text-slate-200">
+        <div className="text-center text-sm text-slate-400">Trip not found.</div>
       </main>
     );
   }
@@ -47,28 +47,30 @@ export default async function DriverLogPage({
   const profit = Number(trip.profit ?? 0);
   const marginPct = Number(trip.marginPct ?? 0);
 
-  const safeStops: TripStopDTO[] = trip.stops.map((stop) => ({
+  const mapStops: StopDTO[] = trip.stops.map((stop) => ({
     id: stop.id,
     seq: stop.seq,
     stopType: stop.stopType,
-    name: stop.name,
-    street: stop.street,
-    city: stop.city,
-    state: stop.state,
-    country: stop.country,
-    postal: stop.postal,
-    scheduledAt: stop.scheduledAt ? stop.scheduledAt.toISOString() : null,
+    name: stop.name ?? null,
+    city: stop.city ?? null,
+    state: stop.state ?? null,
     lat: stop.lat ?? null,
     lon: stop.lon ?? null,
   }));
 
-  const safeEvents: TripEventDTO[] = trip.events.map((event) => ({
+  const mapEvents: EventDTO[] = trip.events.map((event) => ({
     id: event.id,
     type: event.type,
     at: event.at.toISOString(),
-    stopId: event.stopId,
+    stopId: event.stopId ?? null,
     lat: event.lat ?? null,
     lon: event.lon ?? null,
+  }));
+
+  const timelineEvents = trip.events.map((event) => ({
+    id: event.id,
+    type: event.type,
+    at: event.at.toISOString(),
     notes: event.notes ?? null,
     stop: event.stop
       ? {
@@ -91,26 +93,26 @@ export default async function DriverLogPage({
     ? timeUntil(finalDeliveryStop.scheduledAt)
     : "Awaiting schedule";
 
-  const summary = {
-    etaLabel,
-    delayBadge:
-      operationalStatus?.delayRiskBadge ?? ({ text: "On schedule", tone: "green" } as const),
-    nextCommitmentLabel: operationalStatus?.nextCommitmentLabel ?? "No upcoming stops",
-  };
+  const delayRiskLabel = operationalStatus?.delayRiskBadge?.text ?? "On schedule";
+  const nextCommitmentLabel = operationalStatus?.nextCommitmentLabel ?? "No upcoming stops";
 
   const statusCard = (
     <TripStatusCard
       driver={trip.driver}
       unit={trip.unit}
       statusLabel={trip.status || "Created"}
-      nextCommitmentLabel={operationalStatus?.nextCommitmentLabel ?? "No upcoming stops"}
-      delayBadge={operationalStatus?.delayRiskBadge ?? { text: "On track", tone: "green" }}
-      marginBadge={operationalStatus?.marginBadge ?? { text: "No margin data", tone: "yellow" }}
+      nextCommitmentLabel={nextCommitmentLabel}
+      delayBadge={
+        operationalStatus?.delayRiskBadge ?? ({ text: "On track", tone: "green" } as const)
+      }
+      marginBadge={
+        operationalStatus?.marginBadge ?? ({ text: "No margin data", tone: "yellow" } as const)
+      }
       operationalAlerts={operationalStatus?.operationalAlerts ?? []}
     />
   );
 
-  const logButtonStops = safeStops.map((stop) => ({
+  const logButtonStops = mapStops.map((stop) => ({
     id: stop.id,
     seq: stop.seq,
     stopType: stop.stopType,
@@ -120,55 +122,55 @@ export default async function DriverLogPage({
   }));
 
   return (
-    <main className="min-h-screen bg-[#0a0f1c] px-6 py-10 text-neutral-100">
-      <div className="mx-auto space-y-8 max-w-5xl">
+    <main className="min-h-screen bg-[#0a0f1c] px-6 py-10 text-slate-100">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8">
         <header className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight">Driver Log / Trip Clock</h1>
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-slate-400">
             One-tap milestones. Every press is timestamped, cost is updated.
           </p>
         </header>
 
-        <section className="grid gap-4 rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 text-[13px] leading-relaxed shadow-lg shadow-black/40 md:grid-cols-2">
+        <section className="grid gap-4 rounded-xl border border-white/10 bg-slate-900/40 p-5 text-[13px] leading-relaxed shadow-lg shadow-black/40 md:grid-cols-2">
           <div>
-            <div className="text-[11px] text-neutral-400 uppercase">Trip / Lane</div>
-            <div className="text-sm font-semibold text-neutral-100">
+            <div className="text-[11px] uppercase text-slate-400">Trip / Lane</div>
+            <div className="text-sm font-semibold text-slate-100">
               {trip.order?.origin || "—"} → {trip.order?.destination || "—"}
             </div>
-            <div className="text-[11px] text-neutral-400">Trip #{trip.id.slice(0, 8).toUpperCase()}</div>
+            <div className="text-[11px] text-slate-400">Trip #{trip.id.slice(0, 8).toUpperCase()}</div>
           </div>
 
           <div>
-            <div className="text-[11px] text-neutral-400 uppercase">Driver / Unit</div>
-            <div className="text-sm font-medium text-neutral-100">
+            <div className="text-[11px] uppercase text-slate-400">Driver / Unit</div>
+            <div className="text-sm font-medium text-slate-100">
               {trip.driver || "—"} &nbsp;/&nbsp; {trip.unit || "—"}
             </div>
-            <div className="text-[11px] text-neutral-400">Status: {trip.status || "Created"}</div>
+            <div className="text-[11px] text-slate-400">Status: {trip.status || "Created"}</div>
           </div>
 
           <div>
-            <div className="text-[11px] text-neutral-400 uppercase">Miles / Revenue</div>
-            <div className="text-sm font-medium text-neutral-100">{miles} mi</div>
-            <div className="text-[11px] text-neutral-400">${revenue.toFixed(2)} total</div>
+            <div className="text-[11px] uppercase text-slate-400">Miles / Revenue</div>
+            <div className="text-sm font-medium text-slate-100">{miles} mi</div>
+            <div className="text-[11px] text-slate-400">${revenue.toFixed(2)} total</div>
           </div>
 
           <div>
-            <div className="text-[11px] text-neutral-400 uppercase">Cost / Margin</div>
-            <div className="text-sm font-medium text-neutral-100">Total CPM {totalCPM.toFixed(2)}</div>
+            <div className="text-[11px] uppercase text-slate-400">Cost / Margin</div>
+            <div className="text-sm font-medium text-slate-100">Total CPM {totalCPM.toFixed(2)}</div>
             <div
               className={`text-[11px] ${
                 marginPct >= 0.12
                   ? "text-emerald-400"
                   : marginPct >= 0.08
-                  ? "text-yellow-300"
-                  : "text-red-400"
+                  ? "text-amber-300"
+                  : "text-rose-400"
               }`}
             >
               Margin {(marginPct * 100).toFixed(1)}%
             </div>
           </div>
 
-          <div className="md:col-span-2 grid grid-cols-2 gap-3 text-[11px] text-neutral-300">
+          <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-300 md:col-span-2">
             <Metric label="Fixed CPM" value={fixedCPM.toFixed(2)} prefix="$" />
             <Metric label="Wage CPM" value={wageCPM.toFixed(2)} prefix="$" />
             <Metric label="Rolling CPM" value={rollingCPM.toFixed(2)} prefix="$" />
@@ -178,24 +180,30 @@ export default async function DriverLogPage({
           </div>
         </section>
 
-        <TripMapAndStatus
-          stops={safeStops}
-          events={safeEvents}
-          summary={summary}
-          statusCard={statusCard}
-        >
-          <section className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40 space-y-4">
-            <div className="text-sm font-semibold text-neutral-200">Log an Event</div>
-            <p className="text-[12px] text-neutral-400">
-              Tap a button when it happens. We&apos;ll timestamp it, capture geolocation, and update costing.
-            </p>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <TripMapAndStatus
+            stops={mapStops}
+            events={mapEvents}
+            etaToFinalStopLabel={etaLabel}
+            delayRiskPctLabel={delayRiskLabel}
+            nextCommitmentText={nextCommitmentLabel}
+          />
+          {statusCard}
+        </div>
+
+        <section className="rounded-xl border border-white/10 bg-slate-900/40 p-5 shadow-lg shadow-black/40">
+          <div className="text-sm font-semibold text-slate-200">Log an Event</div>
+          <p className="mt-2 text-xs text-slate-400">
+            Tap a button when it happens. We&apos;ll timestamp it, capture geolocation, and update costing.
+          </p>
+          <div className="mt-4">
             <LogButtons tripId={trip.id} stops={logButtonStops} />
-          </section>
+          </div>
+        </section>
 
-          <TripActivityTimeline events={safeEvents} />
-        </TripMapAndStatus>
+        <TripActivityTimeline events={timelineEvents} />
 
-        <p className="text-[11px] text-neutral-500">
+        <p className="text-[11px] text-slate-500">
           Tap to log events in real time. Edits are timestamped and auditable.
         </p>
       </div>
@@ -239,29 +247,24 @@ function TripStatusCard({
   operationalAlerts: string[];
 }) {
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40 space-y-4">
-      <div>
-        <div className="text-sm font-semibold text-neutral-200">Trip Status</div>
-        <div className="mt-4 space-y-3 text-[13px] text-neutral-200">
-          <StatusRow label="Driver / Unit" value={`${driver || "—"} / ${unit || "—"}`} />
-          <StatusRow label="Trip State" value={statusLabel || "Created"} />
-          <StatusRow label="Next Commitment" value={nextCommitmentLabel} />
-          <StatusRow
-            label="Delay Risk"
-            value={<Badge tone={delayBadge.tone}>{delayBadge.text}</Badge>}
-          />
-          <StatusRow
-            label="Margin Health"
-            value={<Badge tone={marginBadge.tone}>{marginBadge.text}</Badge>}
-          />
-        </div>
+    <div className="rounded-xl border border-white/10 bg-slate-900/40 p-5 shadow-lg shadow-black/40">
+      <div className="text-sm font-semibold text-slate-200">Trip Status</div>
+      <div className="mt-4 space-y-3 text-xs text-slate-100">
+        <StatusRow label="Driver / Unit" value={`${driver || "—"} / ${unit || "—"}`} />
+        <StatusRow label="Trip State" value={statusLabel || "Created"} />
+        <StatusRow label="Next Commitment" value={nextCommitmentLabel} />
+        <StatusRow label="Delay Risk" value={<Badge tone={delayBadge.tone}>{delayBadge.text}</Badge>} />
+        <StatusRow
+          label="Margin Health"
+          value={<Badge tone={marginBadge.tone}>{marginBadge.text}</Badge>}
+        />
       </div>
 
-      <div>
-        <div className="text-[11px] uppercase tracking-wide text-neutral-500">Operational Alerts</div>
-        <ul className="mt-2 space-y-1 text-[12px]">
+      <div className="mt-5">
+        <div className="text-[11px] uppercase tracking-wide text-slate-400">Operational Alerts</div>
+        <ul className="mt-2 space-y-1 text-[11px]">
           {operationalAlerts.length === 0 ? (
-            <li className="text-neutral-500">No active alerts.</li>
+            <li className="text-slate-500">No active alerts.</li>
           ) : (
             operationalAlerts.map((alert) => (
               <li key={alert} className="text-rose-300">• {alert}</li>
@@ -276,8 +279,8 @@ function TripStatusCard({
 function StatusRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wide text-neutral-500">{label}</div>
-      <div className="text-sm text-neutral-100">{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-slate-400">{label}</div>
+      <div className="text-sm text-slate-100">{value}</div>
     </div>
   );
 }
@@ -290,7 +293,9 @@ function Badge({ tone, children }: { tone: "green" | "yellow" | "red"; children:
       ? "border-amber-400/30 bg-amber-400/10 text-amber-200"
       : "border-rose-500/30 bg-rose-500/10 text-rose-300";
   return (
-    <span className={`inline-flex items-center gap-1 rounded border px-2 py-[2px] text-[11px] font-medium leading-none ${toneClass}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded border px-2 py-[2px] text-[11px] font-medium leading-none ${toneClass}`}
+    >
       {children}
     </span>
   );
@@ -308,12 +313,12 @@ function Metric({
   suffix?: string;
 }) {
   return (
-    <div className="rounded-lg border border-neutral-800/80 bg-neutral-900/70 px-3 py-2 shadow-inner shadow-black/40">
-      <div className="text-[10px] uppercase tracking-wide text-neutral-500">{label}</div>
-      <div className="text-[12px] font-semibold text-neutral-100">
-        {prefix ? `${prefix}` : ""}
+    <div className="rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 shadow-inner shadow-black/40">
+      <div className="text-[10px] uppercase tracking-wide text-slate-400">{label}</div>
+      <div className="text-[12px] font-semibold text-slate-100">
+        {prefix ?? ""}
         {value}
-        {suffix ? `${suffix}` : ""}
+        {suffix ?? ""}
       </div>
     </div>
   );
