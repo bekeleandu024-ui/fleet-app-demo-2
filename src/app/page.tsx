@@ -23,23 +23,38 @@ export default async function DashboardPage() {
           <CardHeader><CardTitle>Plan</CardTitle></CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-3">
             <Link href="/plan" className="nav-link no-underline text-slate-200 inline-block">Plan &amp; Price</Link>
-            <Link href="/guardrails" className="nav-link no-underline text-slate-200 inline-block">Driver, unit, margin guardrails</Link>
+            <Link
+              href="/plan"
+              className="nav-link no-underline text-slate-200 inline-block"
+            >
+              Driver, unit, margin guardrails
+            </Link>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>Fleet</CardTitle></CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-3">
-            <Link href="/map" className="nav-link no-underline text-slate-200 inline-block">Live Map</Link>
-            <Link href="/units/active" className="nav-link no-underline text-slate-200 inline-block">Available units &amp; active lanes</Link>
+            <Link href="/fleet" className="nav-link no-underline text-slate-200 inline-block">Live Map</Link>
+            <Link
+              href="/fleet"
+              className="nav-link no-underline text-slate-200 inline-block"
+            >
+              Available units &amp; active lanes
+            </Link>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>Insights</CardTitle></CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-3">
-            <Link href="/analytics" className="nav-link no-underline text-slate-200 inline-block">Analytics</Link>
-            <Link href="/margins" className="nav-link no-underline text-slate-200 inline-block">Margin, dwell, guardrails</Link>
+            <Link href="/insights" className="nav-link no-underline text-slate-200 inline-block">Analytics</Link>
+            <Link
+              href="/insights"
+              className="nav-link no-underline text-slate-200 inline-block"
+            >
+              Margin, dwell, guardrails
+            </Link>
           </CardContent>
         </Card>
 
