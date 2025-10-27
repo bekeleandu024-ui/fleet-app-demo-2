@@ -1,7 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+
 import prisma from "@/lib/prisma";
+import { recalcTripCost } from "@/server/cost-engine";
 
 function toNumber(value: FormDataEntryValue | null) {
   if (value === null || value === undefined || value === "") return null;
@@ -29,7 +31,7 @@ export async function createTrip(orderId: string, formData: FormData) {
     throw new Error("Miles is required.");
   }
 
-  await prisma.trip.create({
+  const trip = await prisma.trip.create({
     data: {
       orderId,
       driver,
@@ -42,6 +44,10 @@ export async function createTrip(orderId: string, formData: FormData) {
       status: "Created",
     },
   });
+
+  if (driver && unit && miles > 0) {
+    await recalcTripCost(trip.id);
+  }
 
   redirect(`/orders/${orderId}`);
 }
