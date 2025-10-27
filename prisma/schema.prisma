@@ -24,7 +24,7 @@ model Order {
   lastSuggestedDriverId String?
   lastSuggestedUnitId  String?
   lastSuggestedRateId  String?
-  lastSuggestedPlan    Json?
+  lastSuggestedPlan    String?
   lastSuggestionReason String?
   lastSuggestedBy      String?
   lastSuggestionAt     DateTime?
@@ -73,12 +73,12 @@ model Trip {
   lastSuggestedDriverId String?
   lastSuggestedUnitId  String?
   lastSuggestedRateId  String?
-  lastSuggestedPlan    Json?
+  lastSuggestedPlan    String?
   lastSuggestionReason String?
   lastSuggestedBy      String?
   lastSuggestionAt     DateTime?
-  customerMessageAudit Json?
-  driverMessageAudit   Json?
+  customerMessageAudit String?
+  driverMessageAudit   String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   driverId             String?
@@ -112,8 +112,8 @@ model Driver {
   milesLast7d          Int?
   onTimeScore          Float?
   fastApproved         Boolean? @default(false)
-  preferredCustomers   Json?
-  blockedCustomers     Json?
+  preferredCustomers   String?
+  blockedCustomers     String?
   notes                String?
   trips                Trip[]   @relation("TripDriver")
 }
@@ -133,7 +133,7 @@ model Unit {
   lastKnownLon     Float?
   lastKnownAt      DateTime?
   lastMarginPct    Decimal?
-  restrictions     Json?
+  restrictions     String?
   trips            Trip[]   @relation("TripUnit")
 }
 
