@@ -34,9 +34,9 @@ export default async function UnitsPage() {
           + New Unit
         </Link>
       </div>
-      <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70">
-        <table className="min-w-full divide-y divide-zinc-800 text-sm">
-          <thead className="bg-zinc-900/60 text-zinc-400">
+      <div className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
+        <table className="min-w-full divide-y divide-slate-800/60 text-sm">
+          <thead className="bg-slate-900/60 text-slate-400">
             <tr>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Code</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Type</th>
@@ -46,26 +46,26 @@ export default async function UnitsPage() {
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-900/60">
+          <tbody className="divide-y divide-slate-900/50">
             {units.map((unit) => (
-              <tr key={unit.id} className="hover:bg-zinc-900/50">
+              <tr key={unit.id} className="transition hover:bg-slate-900/45">
                 <td className="px-4 py-3 text-white">{unit.code}</td>
-                <td className="px-4 py-3 text-zinc-300">{unit.type ?? "—"}</td>
-                <td className="px-4 py-3 text-zinc-300">{unit.homeBase ?? "—"}</td>
-                <td className="px-4 py-3 text-zinc-300">{formatWeeklyFixedCost(unit.weeklyFixedCost)}</td>
+                <td className="px-4 py-3 text-slate-300">{unit.type ?? "—"}</td>
+                <td className="px-4 py-3 text-slate-300">{unit.homeBase ?? "—"}</td>
+                <td className="px-4 py-3 text-slate-300">{formatWeeklyFixedCost(unit.weeklyFixedCost)}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                       unit.active
                         ? "bg-emerald-500/10 text-emerald-300"
-                        : "bg-zinc-800 text-zinc-400"
+                        : "bg-slate-800 text-slate-400"
                     }`}
                   >
                     {unit.active ? "Active" : "Inactive"}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/units/${unit.id}/edit`} className="text-sm text-sky-300 hover:text-sky-200">
+                  <Link href={`/units/${unit.id}/edit`} className="text-sm text-sky-300 transition hover:text-sky-200">
                     Edit
                   </Link>
                 </td>
@@ -73,7 +73,7 @@ export default async function UnitsPage() {
             ))}
             {units.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                   No units yet.
                 </td>
               </tr>

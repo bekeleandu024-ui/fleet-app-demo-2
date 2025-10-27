@@ -45,9 +45,9 @@ export default async function TripsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-white">Trips</h1>
       </div>
-      <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70">
-        <table className="min-w-full divide-y divide-zinc-800 text-sm">
-          <thead className="bg-zinc-900/60 text-zinc-400">
+      <div className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-900/60 shadow-card backdrop-blur">
+        <table className="min-w-full divide-y divide-slate-800/60 text-sm">
+          <thead className="bg-slate-900/60 text-slate-400">
             <tr>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Driver</th>
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Unit</th>
@@ -58,21 +58,21 @@ export default async function TripsPage() {
               <th className="px-4 py-3 text-left font-medium uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-900/60">
+          <tbody className="divide-y divide-slate-900/50">
             {safeTrips.map((trip) => (
-              <tr key={trip.id} className="hover:bg-zinc-900/60">
+              <tr key={trip.id} className="transition hover:bg-slate-900/50">
                 <td className="px-4 py-3 text-white">{trip.driverName}</td>
-                <td className="px-4 py-3 text-zinc-300">{trip.unitCode}</td>
-                <td className="px-4 py-3 text-zinc-300">{formatMiles(trip.miles)}</td>
-                <td className="px-4 py-3 text-zinc-300">{formatCurrency(trip.revenue)}</td>
-                <td className="px-4 py-3 text-zinc-400">{formatDate(trip.weekStart)}</td>
-                <td className="px-4 py-3 text-zinc-300">{trip.status}</td>
+                <td className="px-4 py-3 text-slate-300">{trip.unitCode}</td>
+                <td className="px-4 py-3 text-slate-300">{formatMiles(trip.miles)}</td>
+                <td className="px-4 py-3 text-slate-300">{formatCurrency(trip.revenue)}</td>
+                <td className="px-4 py-3 text-slate-400">{formatDate(trip.weekStart)}</td>
+                <td className="px-4 py-3 text-slate-300">{trip.status}</td>
                 <td className="px-4 py-3 text-sm text-sky-300">
                   <div className="flex flex-wrap gap-3">
-                    <Link href={`/trips/${trip.id}/edit`} className="hover:text-sky-200">
+                    <Link href={`/trips/${trip.id}/edit`} className="transition hover:text-sky-200">
                       Edit
                     </Link>
-                    <Link href={`/trips/${trip.id}/recalc`} className="hover:text-sky-200">
+                    <Link href={`/trips/${trip.id}/recalc`} className="transition hover:text-sky-200">
                       Recalc
                     </Link>
                   </div>
@@ -81,7 +81,7 @@ export default async function TripsPage() {
             ))}
             {safeTrips.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                   No trips yet.
                 </td>
               </tr>
