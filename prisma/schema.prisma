@@ -1,12 +1,111 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
-}
-
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Order {
+  id             String   @id @default(cuid())
+  customer       String
+  origin         String
+  destination    String
+  puWindowStart  DateTime?
+  puWindowEnd    DateTime?
+  delWindowStart DateTime?
+  delWindowEnd   DateTime?
+  requiredTruck  String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  trips          Trip[]
+}
+
+model Trip {
+  id         String   @id @default(cuid())
+  orderId    String?
+  order      Order?   @relation(fields: [orderId], references: [id])
+  driver     String
+  unit       String
+  tripStart  DateTime?
+  tripEnd    DateTime?
+  weekStart  DateTime?
+  type       String?
+  zone       String?
+  miles      Decimal
+  revenue    Decimal?
+  fixedCPM   Decimal?
+  wageCPM    Decimal?
+  addOnsCPM  Decimal?
+  rollingCPM Decimal?
+  totalCPM   Decimal?
+  totalCost  Decimal?
+  profit     Decimal?
+  marginPct  Decimal?
+  status     String   @default("Created")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+  driverId   String?
+  unitId     String?
+  rateId     String?
+  driverRef  Driver?  @relation("TripDriver", fields: [driverId], references: [id])
+  unitRef    Unit?    @relation("TripUnit", fields: [unitId], references: [id])
+  rateRef    Rate?    @relation("TripRate", fields: [rateId], references: [id])
+  events     Event[]
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id])
+  type      String
+  at        DateTime
+  location  String?
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model Driver {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  license  String?
+  homeBase String?
+  active   Boolean @default(true)
+  trips    Trip[]  @relation("TripDriver")
+}
+
+model Unit {
+  id       String  @id @default(cuid())
+  code     String  @unique
+  type     String?
+  homeBase String?
+  active   Boolean @default(true)
+  trips    Trip[]  @relation("TripUnit")
+}
+
+model Rate {
+  id         String  @id @default(cuid())
+  type       String?
+  zone       String?
+  fixedCPM   Decimal
+  wageCPM    Decimal
+  addOnsCPM  Decimal
+  rollingCPM Decimal
+  trips      Trip[]  @relation("TripRate")
+  @@index([type])
+  @@index([zone])
+}
+
+model RateSetting {
+  id        String   @id @default(cuid())
+  rateKey   String
+  category  String
+  value     Decimal
+  unit      String
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  @@unique([rateKey, category])
+  @@index([category])
 }
