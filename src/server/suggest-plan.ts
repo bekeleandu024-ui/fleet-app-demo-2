@@ -19,11 +19,12 @@ export type SuggestedRate = {
   cpmBreakdown: {
     wageCPM: number;
     fuelCPM: number;
+    truckMaintCPM: number;
+    trailerMaintCPM: number;
     addOnsCPM: number;
     fixedCPM: number;
     totalCPM: number;
   };
-  fuelSurcharge: number | null;
   marginEstimatePct: number | null;
   warningLowMargin?: boolean;
 };
@@ -179,13 +180,16 @@ export async function suggestPlanAndPrice(orderId: string): Promise<PlanSuggesti
 
   const candidateRate = rates[0];
   const defaultMiles = 250;
-  const rpm = candidateRate ? toNumber(candidateRate.rpm ?? candidateRate.fixedCPM) : 2.5;
   const wageCPM = candidateRate ? toNumber(candidateRate.wageCPM) ?? 0 : 0.85;
-  const fuelCPM = candidateRate ? toNumber(candidateRate.rollingCPM) ?? 0 : 0.65;
+  const fuelCPM = candidateRate ? toNumber(candidateRate.fuelCPM) ?? 0 : 0.65;
+  const truckMaintCPM = candidateRate ? toNumber(candidateRate.truckMaintCPM) ?? 0 : 0.18;
+  const trailerMaintCPM = candidateRate ? toNumber(candidateRate.trailerMaintCPM) ?? 0 : 0.1;
   const addOnsCPM = candidateRate ? toNumber(candidateRate.addOnsCPM) ?? 0 : 0.1;
   const fixedCPM = candidateRate ? toNumber(candidateRate.fixedCPM) ?? 0 : 0.4;
 
-  const totalCPM = wageCPM + fuelCPM + addOnsCPM + fixedCPM;
+  const rollingCPM = fuelCPM + truckMaintCPM + trailerMaintCPM;
+  const totalCPM = wageCPM + rollingCPM + addOnsCPM + fixedCPM;
+  const rpm = totalCPM > 0 ? Number((totalCPM + 0.45).toFixed(2)) : 2.5;
   const revenue = rpm !== null ? rpm * defaultMiles : null;
   const cost = totalCPM * defaultMiles;
   const margin = revenue && revenue !== 0 ? (revenue - cost) / revenue : null;
@@ -201,11 +205,12 @@ export async function suggestPlanAndPrice(orderId: string): Promise<PlanSuggesti
     cpmBreakdown: {
       wageCPM,
       fuelCPM,
+      truckMaintCPM,
+      trailerMaintCPM,
       addOnsCPM,
       fixedCPM,
       totalCPM,
     },
-    fuelSurcharge: candidateRate ? toNumber(candidateRate.fuelSurcharge) : null,
     marginEstimatePct: margin,
     warningLowMargin: guardrails.some((item) => item.toLowerCase().includes("margin")),
   };

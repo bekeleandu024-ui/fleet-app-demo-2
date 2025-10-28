@@ -188,16 +188,17 @@ model Unit {
 }
 
 model Rate {
-  id            String   @id @default(cuid())
-  type          String?
-  zone          String?
-  rpm           Decimal?
-  fuelSurcharge Decimal?
-  fixedCPM      Decimal
-  wageCPM       Decimal
-  addOnsCPM     Decimal
-  rollingCPM    Decimal
-  trips         Trip[]   @relation("TripRate")
+  id               String   @id @default(cuid())
+  type             String?
+  zone             String?
+  fixedCPM         Decimal
+  wageCPM          Decimal
+  addOnsCPM        Decimal
+  fuelCPM          Decimal
+  truckMaintCPM    Decimal
+  trailerMaintCPM  Decimal
+  rollingCPM       Decimal
+  trips            Trip[]   @relation("TripRate")
 
   @@index([type])
   @@index([zone])
