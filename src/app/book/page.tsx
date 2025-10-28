@@ -1,49 +1,98 @@
 import Link from "next/link";
 
-import prisma from "@/lib/prisma";
 import { generateBookingSuggestion } from "@/lib/aiBooking";
+import prisma from "@/lib/prisma";
+
 import BookTripButton from "./BookTripButton";
 
-function formatWindow(start: Date | null, end: Date | null) {
-  if (!start && !end) return "Flexible";
+type SearchParams = Record<string, string | string[] | undefined>;
+
+type SafeOrder = {
+  id: string;
+  customer: string;
+  origin: string;
+  destination: string;
+  requiredTruck: string | null;
+  puWindowStart: Date | null;
+  puWindowEnd: Date | null;
+  delWindowStart: Date | null;
+  delWindowEnd: Date | null;
+  notes: string | null;
+};
+
+type SafeDriver = {
+  id: string;
+  name: string;
+  homeBase: string | null;
+  hoursAvailableToday: number | null;
+  onTimeScore: number | null;
+  type: string;
+  preferredCustomers: string[];
+  blockedCustomers: string[];
+};
+
+type SafeUnit = {
+  id: string;
+  code: string;
+  type: string;
+  homeBase: string | null;
+  status: string;
+  isOnHold: boolean;
+  active: boolean;
+  lastKnownLat: number | null;
+  lastKnownLon: number | null;
+};
+
+type SafeRate = {
+  id: string;
+  type: string;
+  zone: string;
+  rpm: number | null;
+  fixedCPM: number;
+  wageCPM: number;
+  addOnsCPM: number;
+  rollingCPM: number;
+};
+
+const formatWindow = (start: Date | null, end: Date | null): string => {
+  if (!start && !end) {
+    return "Flexible";
+  }
+
   const formatter = new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+
   if (start && end) {
     return `${formatter.format(start)} → ${formatter.format(end)}`;
   }
-  if (start) return `From ${formatter.format(start)}`;
-  if (end) return `By ${formatter.format(end)}`;
+
+  if (start) {
+    return `From ${formatter.format(start)}`;
+  }
+
+  if (end) {
+    return `By ${formatter.format(end)}`;
+  }
+
   return "Flexible";
-}
+};
 
-function marginClass(value: number) {
-  if (value >= 0.15) return "text-emerald-400";
-  if (value >= 0.08) return "text-amber-400";
+const marginClass = (value: number): string => {
+  if (value >= 0.15) {
+    return "text-emerald-400";
+  }
+  if (value >= 0.08) {
+    return "text-amber-400";
+  }
   return "text-rose-400";
-}
+};
 
-export default async function BookPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const resolvedSearchParams =
-    searchParams ? await searchParams : undefined;
-  const [orders, drivers, units, rates] = await Promise.all([
-    prisma.order.findMany({
-      where: { status: "Qualified" },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.driver.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.unit.findMany({ where: { active: true, isOnHold: false }, orderBy: { code: "asc" } }),
-    prisma.rate.findMany({ orderBy: [{ type: "asc" }, { zone: "asc" }] }),
-  ]);
-
-  const safeOrders = orders.map((order) => ({
+const toSafeOrders = (orders: Awaited<ReturnType<typeof prisma.order.findMany>>): SafeOrder[] =>
+  orders.map((order) => ({
     id: order.id,
     customer: order.customer,
     origin: order.origin,
@@ -56,7 +105,8 @@ export default async function BookPage({
     notes: order.notes,
   }));
 
-  const safeDrivers = drivers.map((driver) => ({
+const toSafeDrivers = (drivers: Awaited<ReturnType<typeof prisma.driver.findMany>>): SafeDriver[] =>
+  drivers.map((driver) => ({
     id: driver.id,
     name: driver.name,
     homeBase: driver.homeBase,
@@ -67,7 +117,8 @@ export default async function BookPage({
     blockedCustomers: driver.blockedCustomers,
   }));
 
-  const safeUnits = units.map((unit) => ({
+const toSafeUnits = (units: Awaited<ReturnType<typeof prisma.unit.findMany>>): SafeUnit[] =>
+  units.map((unit) => ({
     id: unit.id,
     code: unit.code,
     type: unit.type,
@@ -79,7 +130,8 @@ export default async function BookPage({
     lastKnownLon: unit.lastKnownLon ?? null,
   }));
 
-  const safeRates = rates.map((rate) => ({
+const toSafeRates = (rates: Awaited<ReturnType<typeof prisma.rate.findMany>>): SafeRate[] =>
+  rates.map((rate) => ({
     id: rate.id,
     type: rate.type,
     zone: rate.zone,
@@ -90,10 +142,40 @@ export default async function BookPage({
     rollingCPM: Number(rate.rollingCPM),
   }));
 
-  const selectedOrderIdParam = resolvedSearchParams?.orderId;
-  const selectedOrderId = Array.isArray(selectedOrderIdParam)
-    ? selectedOrderIdParam[0]
-    : selectedOrderIdParam ?? safeOrders[0]?.id ?? null;
+const getSelectedOrderId = (orders: SafeOrder[], searchParams?: SearchParams): string | null => {
+  if (!searchParams) {
+    return orders[0]?.id ?? null;
+  }
+
+  const selectedOrderIdParam = searchParams.orderId;
+  if (Array.isArray(selectedOrderIdParam)) {
+    return selectedOrderIdParam[0] ?? orders[0]?.id ?? null;
+  }
+
+  return selectedOrderIdParam ?? orders[0]?.id ?? null;
+};
+
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams;
+}) {
+  const [orders, drivers, units, rates] = await Promise.all([
+    prisma.order.findMany({
+      where: { status: "Qualified" },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.driver.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.unit.findMany({ where: { active: true, isOnHold: false }, orderBy: { code: "asc" } }),
+    prisma.rate.findMany({ orderBy: [{ type: "asc" }, { zone: "asc" }] }),
+  ]);
+
+  const safeOrders = toSafeOrders(orders);
+  const safeDrivers = toSafeDrivers(drivers);
+  const safeUnits = toSafeUnits(units);
+  const safeRates = toSafeRates(rates);
+
+  const selectedOrderId = getSelectedOrderId(safeOrders, searchParams);
   const selectedOrder = safeOrders.find((order) => order.id === selectedOrderId) ?? null;
 
   const suggestion = selectedOrder
@@ -120,6 +202,7 @@ export default async function BookPage({
             {safeOrders.map((order) => {
               const href = `/book?orderId=${order.id}`;
               const isActive = order.id === selectedOrderId;
+
               return (
                 <li key={order.id}>
                   <Link
