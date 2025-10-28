@@ -4,7 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import React from "react";
 
-import CollapsibleNavPanel from "@/src/components/navigation/collapsible-side-panel";
+import DashboardShell from "@/src/components/navigation/dashboard-shell";
 import { NAV_SECTIONS, TOP_NAV_LINKS } from "@/src/lib/navigation";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -48,10 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
           </header>
-          <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8 lg:px-8">
-            <CollapsibleNavPanel sections={NAV_SECTIONS} />
-            <main className="flex-1">{children}</main>
-          </div>
+          <DashboardShell sections={NAV_SECTIONS}>{children}</DashboardShell>
         </div>
       </body>
     </html>
