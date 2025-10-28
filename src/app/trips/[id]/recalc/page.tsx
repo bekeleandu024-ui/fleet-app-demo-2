@@ -84,8 +84,10 @@ const toneClasses: Record<string, string> = {
   neutral: "text-zinc-400",
 };
 
-export default async function TripRecalcPage({ params }: { params: { id: string } }) {
-  const { trip, before, after, rateApplied } = await recalcTripTotals(params.id);
+export default async function TripRecalcPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  const { trip, before, after, rateApplied } = await recalcTripTotals(id);
   const hasChanges = FIELD_ORDER.some((field) => {
     const beforeValue = before[field] ?? null;
     const afterValue = after[field] ?? null;

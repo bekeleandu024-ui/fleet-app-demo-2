@@ -45,9 +45,11 @@ function formatRelative(date?: Date | null) {
   return `${diffDays}d ago`;
 }
 
-export default async function TripEventsPage({ params }: { params: { id: string } }) {
+export default async function TripEventsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const trip = await prisma.trip.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       driver: true,

@@ -9,9 +9,11 @@ function toNumber(value: unknown) {
   return Number.isNaN(number) ? null : number;
 }
 
-export default async function TripEditPage({ params }: { params: { id: string } }) {
+export default async function TripEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const trip = await prisma.trip.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       driverRef: true,
       unitRef: true,
