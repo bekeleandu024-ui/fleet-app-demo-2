@@ -45,10 +45,12 @@ interface RateOption {
   id: string;
   type: string | null;
   zone: string | null;
-  rpm: number | null;
   fixedCPM: number;
   wageCPM: number;
   addOnsCPM: number;
+  fuelCPM: number;
+  truckMaintCPM: number;
+  trailerMaintCPM: number;
   rollingCPM: number;
 }
 
@@ -168,8 +170,10 @@ const formatRateLabel = (rate: RateOption) => {
   if (rate.zone) {
     parts.push(rate.zone);
   }
-  if (rate.rpm != null) {
-    parts.push(`${rate.rpm.toFixed(2)} RPM`);
+  const rolling = rate.rollingCPM || rate.fuelCPM + rate.truckMaintCPM + rate.trailerMaintCPM;
+  const total = rate.fixedCPM + rate.wageCPM + rate.addOnsCPM + rolling;
+  if (Number.isFinite(total) && total > 0) {
+    parts.push(`${total.toFixed(2)} CPM`);
   }
   return parts.join(" · ") || "Rate";
 };
@@ -367,14 +371,16 @@ export default function BookTripButton(props: BaseProps) {
     if (option) {
       setTripTypeInput(option.type ?? "");
       setTripZoneInput(option.zone ?? "");
-      if (option.rpm != null) {
-        setRpmInput(option.rpm.toFixed(2));
+      const rolling = option.rollingCPM || option.fuelCPM + option.truckMaintCPM + option.trailerMaintCPM;
+      const total = option.fixedCPM + option.wageCPM + option.addOnsCPM + rolling;
+      const suggestedRpm = total > 0 ? Number((total + 0.45).toFixed(2)) : null;
+      if (suggestedRpm !== null) {
+        setRpmInput(suggestedRpm.toFixed(2));
         const milesParsed = safeNumber(milesInput, 0);
         if (milesParsed > 0) {
-          setTotalRevenueInput((milesParsed * option.rpm).toFixed(2));
+          setTotalRevenueInput((milesParsed * suggestedRpm).toFixed(2));
         }
       }
-      const total = option.fixedCPM + option.wageCPM + option.addOnsCPM + option.rollingCPM;
       setTotalCpmInput(total.toFixed(2));
     }
   };

@@ -47,11 +47,30 @@ type SafeRate = {
   id: string;
   type: string | null;
   zone: string | null;
-  rpm: number | null;
   fixedCPM: number;
   wageCPM: number;
   addOnsCPM: number;
+  fuelCPM: number;
+  truckMaintCPM: number;
+  trailerMaintCPM: number;
   rollingCPM: number;
+};
+
+const computeRateTotals = (rate: SafeRate | null) => {
+  if (!rate) {
+    return { rolling: 0, total: 0 };
+  }
+  const rolling = rate.rollingCPM || rate.fuelCPM + rate.truckMaintCPM + rate.trailerMaintCPM;
+  const total = rate.fixedCPM + rate.wageCPM + rate.addOnsCPM + rolling;
+  return { rolling, total };
+};
+
+const computeSuggestedRpm = (rate: SafeRate | null) => {
+  const { total } = computeRateTotals(rate);
+  if (!Number.isFinite(total) || total <= 0) {
+    return 0;
+  }
+  return Number((total + 0.45).toFixed(2));
 };
 
 const formatWindow = (start: Date | null, end: Date | null): string => {
@@ -212,16 +231,27 @@ const toSafeUnits = (
 const toSafeRates = (
   rates: Awaited<ReturnType<typeof prisma.rate.findMany>>,
 ): SafeRate[] =>
-  rates.map((rate) => ({
-    id: rate.id,
-    type: rate.type ?? null,
-    zone: rate.zone ?? null,
-    rpm: rate.rpm ? Number(rate.rpm) : null,
-    fixedCPM: Number(rate.fixedCPM),
-    wageCPM: Number(rate.wageCPM),
-    addOnsCPM: Number(rate.addOnsCPM),
-    rollingCPM: Number(rate.rollingCPM),
-  }));
+  rates.map((rate) => {
+    const fuelCPM = Number(rate.fuelCPM);
+    const truckMaintCPM = Number(rate.truckMaintCPM);
+    const trailerMaintCPM = Number(rate.trailerMaintCPM);
+    const derivedRolling = fuelCPM + truckMaintCPM + trailerMaintCPM;
+    const storedRolling = Number(rate.rollingCPM);
+    const rollingCPM = Number.isFinite(derivedRolling) && derivedRolling > 0 ? derivedRolling : storedRolling;
+
+    return {
+      id: rate.id,
+      type: rate.type ?? null,
+      zone: rate.zone ?? null,
+      fixedCPM: Number(rate.fixedCPM),
+      wageCPM: Number(rate.wageCPM),
+      addOnsCPM: Number(rate.addOnsCPM),
+      fuelCPM,
+      truckMaintCPM,
+      trailerMaintCPM,
+      rollingCPM,
+    };
+  });
 
 const getSelectedOrderId = (
   orders: SafeOrder[],
@@ -365,11 +395,8 @@ export default async function BookPage({
     : defaultRateRecord?.zone ?? null;
 
   const defaultMiles = suggestion?.etaEstimate.miles ?? 0;
-  const defaultRpmQuoted = suggestion?.suggestedRate.rpmQuoted ?? defaultRateRecord?.rpm ?? 0;
-  const defaultTotalCpm = suggestion?.suggestedRate.totalCPM
-    ?? (defaultRateRecord
-      ? defaultRateRecord.fixedCPM + defaultRateRecord.wageCPM + defaultRateRecord.addOnsCPM + defaultRateRecord.rollingCPM
-      : 0);
+  const defaultRpmQuoted = suggestion?.suggestedRate.rpmQuoted ?? computeSuggestedRpm(defaultRateRecord);
+  const defaultTotalCpm = suggestion?.suggestedRate.totalCPM ?? computeRateTotals(defaultRateRecord).total;
 
   const bookingNotes = suggestion?.notesForDispatcher ?? "Manual booking created from Trip Booking Control Center.";
   const bookingHighlights = suggestion

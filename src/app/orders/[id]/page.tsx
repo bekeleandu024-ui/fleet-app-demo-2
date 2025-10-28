@@ -109,6 +109,8 @@ export default async function PlanOrderPage({ params }: { params: Promise<{ id: 
           <div className="mt-3 space-y-1 text-xs text-zinc-300">
             <p>Wage CPM: {formatNumber(suggestion.suggestedRate.cpmBreakdown.wageCPM)}</p>
             <p>Fuel CPM: {formatNumber(suggestion.suggestedRate.cpmBreakdown.fuelCPM)}</p>
+            <p>Truck Maint CPM: {formatNumber(suggestion.suggestedRate.cpmBreakdown.truckMaintCPM)}</p>
+            <p>Trailer Maint CPM: {formatNumber(suggestion.suggestedRate.cpmBreakdown.trailerMaintCPM)}</p>
             <p>Add-ons CPM: {formatNumber(suggestion.suggestedRate.cpmBreakdown.addOnsCPM)}</p>
             <p>Fixed CPM: {formatNumber(suggestion.suggestedRate.cpmBreakdown.fixedCPM)}</p>
             <p>Total CPM: {formatNumber(suggestion.suggestedRate.cpmBreakdown.totalCPM)}</p>
@@ -222,8 +224,9 @@ export default async function PlanOrderPage({ params }: { params: Promise<{ id: 
               <tr>
                 <th className="px-3 py-2 text-left">Type</th>
                 <th className="px-3 py-2 text-left">Zone</th>
-                <th className="px-3 py-2 text-right">RPM</th>
-                <th className="px-3 py-2 text-right">Fuel surcharge</th>
+                <th className="px-3 py-2 text-right">Fuel CPM</th>
+                <th className="px-3 py-2 text-right">Truck Maint CPM</th>
+                <th className="px-3 py-2 text-right">Trailer Maint CPM</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900/50">
@@ -231,10 +234,9 @@ export default async function PlanOrderPage({ params }: { params: Promise<{ id: 
                 <tr key={rate.id} className="hover:bg-zinc-900/50">
                   <td className="px-3 py-2 text-white">{rate.type ?? "—"}</td>
                   <td className="px-3 py-2 text-zinc-300">{rate.zone ?? "—"}</td>
-                  <td className="px-3 py-2 text-right text-zinc-300">{formatNumber(rate.rpm ? Number(rate.rpm) : null)}</td>
-                  <td className="px-3 py-2 text-right text-zinc-300">
-                    {formatNumber(rate.fuelSurcharge ? Number(rate.fuelSurcharge) : null)}
-                  </td>
+                  <td className="px-3 py-2 text-right text-zinc-300">{formatNumber(rate.fuelCPM ? Number(rate.fuelCPM) : null, 2)}</td>
+                  <td className="px-3 py-2 text-right text-zinc-300">{formatNumber(rate.truckMaintCPM ? Number(rate.truckMaintCPM) : null, 2)}</td>
+                  <td className="px-3 py-2 text-right text-zinc-300">{formatNumber(rate.trailerMaintCPM ? Number(rate.trailerMaintCPM) : null, 2)}</td>
                 </tr>
               ))}
             </tbody>

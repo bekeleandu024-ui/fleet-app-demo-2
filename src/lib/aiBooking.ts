@@ -1,4 +1,4 @@
-import type { Order, Driver, Unit, Rate } from "@prisma/client";
+import type { Order, Driver, Unit } from "@prisma/client";
 
 import { fetchUnitLocations } from "@/src/server/integrations/telematics";
 import { getRouteEstimate } from "@/src/server/integrations/routing";
@@ -54,10 +54,18 @@ type UnitInput = Pick<
   lastKnownLon?: number | null;
 };
 
-type RateInput = Pick<
-  Rate,
-  "id" | "type" | "zone" | "rpm" | "fixedCPM" | "wageCPM" | "addOnsCPM" | "rollingCPM"
->;
+type RateInput = {
+  id: string;
+  type: string | null;
+  zone: string | null;
+  fixedCPM: number | Prisma.Decimal | null;
+  wageCPM: number | Prisma.Decimal | null;
+  addOnsCPM: number | Prisma.Decimal | null;
+  fuelCPM: number | Prisma.Decimal | null;
+  truckMaintCPM: number | Prisma.Decimal | null;
+  trailerMaintCPM: number | Prisma.Decimal | null;
+  rollingCPM: number | Prisma.Decimal | null;
+};
 
 function toNumber(value: unknown) {
   if (value === null || value === undefined) return 0;
@@ -78,7 +86,12 @@ function deriveZones(order: OrderInput) {
 
 function computeCpm(rate: RateInput | null) {
   if (!rate) return 0;
-  return toNumber(rate.fixedCPM) + toNumber(rate.wageCPM) + toNumber(rate.addOnsCPM) + toNumber(rate.rollingCPM);
+  const fuel = toNumber(rate.fuelCPM);
+  const truckMaint = toNumber(rate.truckMaintCPM);
+  const trailerMaint = toNumber(rate.trailerMaintCPM);
+  const rolling = fuel + truckMaint + trailerMaint;
+  const fallbackRolling = rolling > 0 ? rolling : toNumber(rate.rollingCPM);
+  return toNumber(rate.fixedCPM) + toNumber(rate.wageCPM) + toNumber(rate.addOnsCPM) + fallbackRolling;
 }
 
 function chooseRate(rates: RateInput[], zoneKey: string) {
