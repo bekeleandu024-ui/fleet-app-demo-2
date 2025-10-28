@@ -5,16 +5,8 @@ import Link from "next/link";
 
 import type { NavSection } from "@/src/lib/navigation";
 
-function getInitialState() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return window.matchMedia("(min-width: 1024px)").matches;
-}
-
 export default function CollapsibleNavPanel({ sections }: { sections: NavSection[] }) {
-  const [isOpen, setIsOpen] = useState(getInitialState);
+  const [isOpen, setIsOpen] = useState(false);
   const panelId = useId();
 
   useEffect(() => {
