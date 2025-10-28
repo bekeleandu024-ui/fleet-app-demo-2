@@ -8,102 +8,102 @@ generator client {
 }
 
 model Order {
-  id                   String              @id @default(cuid())
-  customer             String
-  origin               String
-  destination          String
-  puWindowStart        DateTime?
-  puWindowEnd          DateTime?
-  delWindowStart       DateTime?
-  delWindowEnd         DateTime?
-  requiredTruck        String?
-  notes                String?
-  status               String              @default("PendingInfo")
-  qualificationNotes   String?
-  source               String?
+  id                    String             @id @default(cuid())
+  customer              String
+  origin                String
+  destination           String
+  puWindowStart         DateTime?
+  puWindowEnd           DateTime?
+  delWindowStart        DateTime?
+  delWindowEnd          DateTime?
+  requiredTruck         String?
+  notes                 String?
+  status                String             @default("PendingInfo")
+  qualificationNotes    String?
+  source                String?
   lastSuggestedDriverId String?
-  lastSuggestedUnitId  String?
-  lastSuggestedRateId  String?
-  lastSuggestedPlan    String?
-  lastSuggestionReason String?
-  lastSuggestedBy      String?
-  lastSuggestionAt     DateTime?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  trips                Trip[]
-  intakeAttachments    IntakeAttachment[]
+  lastSuggestedUnitId   String?
+  lastSuggestedRateId   String?
+  lastSuggestedPlan     String?
+  lastSuggestionReason  String?
+  lastSuggestedBy       String?
+  lastSuggestionAt      DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  trips                 Trip[]
+  intakeAttachments     IntakeAttachment[]
 }
 
 model Trip {
-  id                   String    @id @default(cuid())
-  orderId              String?
-  order                Order?    @relation(fields: [orderId], references: [id])
-  driver               String
-  unit                 String
-  tripStart            DateTime?
-  tripEnd              DateTime?
-  weekStart            DateTime?
-  type                 String?
-  zone                 String?
-  borderCrossings      Int?      @default(0)
-  pickups              Int?      @default(0)
-  deliveries           Int?      @default(0)
-  dropHooks            Int?      @default(0)
-  miles                Decimal
-  plannedMiles         Decimal?
-  actualMiles          Decimal?
-  expectedRevenue      Decimal?
-  revenue              Decimal?
-  fixedCPM             Decimal?
-  wageCPM              Decimal?
-  addOnsCPM            Decimal?
-  rollingCPM           Decimal?
-  totalCPM             Decimal?
-  totalVariableCPM     Decimal?
-  variableCost         Decimal?
-  fixedCost            Decimal?
-  totalCost            Decimal?
-  profit               Decimal?
-  marginPct            Decimal?
-  finalMarginPct       Decimal?
-  fuelSurcharge        Decimal?
-  status               String    @default("Created")
-  etaPrediction        DateTime?
-  delayRiskPct         Decimal?
-  etaBaseline          DateTime?
-  lastCheckInAt        DateTime?
-  nextCommitmentAt     DateTime?
-  marketRPM            Decimal?
-  originLat            Float?
-  originLon            Float?
-  destLat              Float?
-  destLon              Float?
+  id                    String      @id @default(cuid())
+  orderId               String?
+  order                 Order?      @relation(fields: [orderId], references: [id])
+  driver                String
+  unit                  String
+  tripStart             DateTime?
+  tripEnd               DateTime?
+  weekStart             DateTime?
+  type                  String?
+  zone                  String?
+  borderCrossings       Int?        @default(0)
+  pickups               Int?        @default(0)
+  deliveries            Int?        @default(0)
+  dropHooks             Int?        @default(0)
+  miles                 Decimal
+  plannedMiles          Decimal?
+  actualMiles           Decimal?
+  expectedRevenue       Decimal?
+  revenue               Decimal?
+  fixedCPM              Decimal?
+  wageCPM               Decimal?
+  addOnsCPM             Decimal?
+  rollingCPM            Decimal?
+  totalCPM              Decimal?
+  totalVariableCPM      Decimal?
+  variableCost          Decimal?
+  fixedCost             Decimal?
+  totalCost             Decimal?
+  profit                Decimal?
+  marginPct             Decimal?
+  finalMarginPct        Decimal?
+  fuelSurcharge         Decimal?
+  status                String      @default("Created")
+  etaPrediction         DateTime?
+  delayRiskPct          Decimal?
+  etaBaseline           DateTime?
+  lastCheckInAt         DateTime?
+  nextCommitmentAt      DateTime?
+  marketRPM             Decimal?
+  originLat             Float?
+  originLon             Float?
+  destLat               Float?
+  destLon               Float?
   lastSuggestedDriverId String?
-  lastSuggestedUnitId  String?
-  lastSuggestedRateId  String?
-  lastSuggestedPlan    String?
-  lastSuggestionReason String?
-  lastSuggestedBy      String?
-  lastSuggestionAt     DateTime?
-  customerMessageAudit String?
-  driverMessageAudit   String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  driverId             String?
-  unitId               String?
-  rateId               String?
-  driverRef            Driver?   @relation("TripDriver", fields: [driverId], references: [id])
-  unitRef              Unit?     @relation("TripUnit", fields: [unitId], references: [id])
-  rateRef              Rate?     @relation("TripRate", fields: [rateId], references: [id])
-  events               Event[]
-  tripEvents           TripEvent[]
-  stops                TripStop[]
+  lastSuggestedUnitId   String?
+  lastSuggestedRateId   String?
+  lastSuggestedPlan     String?
+  lastSuggestionReason  String?
+  lastSuggestedBy       String?
+  lastSuggestionAt      DateTime?
+  customerMessageAudit  String?
+  driverMessageAudit    String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  driverId              String?
+  unitId                String?
+  rateId                String?
+  driverRef             Driver?     @relation("TripDriver", fields: [driverId], references: [id])
+  unitRef               Unit?       @relation("TripUnit", fields: [unitId], references: [id])
+  rateRef               Rate?       @relation("TripRate", fields: [rateId], references: [id])
+  events                Event[]
+  tripEvents            TripEvent[]
+  stops                 TripStop[]
 }
 
 model Event {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   tripId    String
-  trip      Trip     @relation(fields: [tripId], references: [id])
+  trip      Trip      @relation(fields: [tripId], references: [id])
   type      String
   at        DateTime
   stopId    String?
@@ -111,40 +111,29 @@ model Event {
   lat       Float?
   lon       Float?
   notes     String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model TripEvent {
-  id            String         @id @default(cuid())
+  id            String    @id @default(cuid())
   tripId        String
-  trip          Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  eventType     TripEventType
+  trip          Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  eventType     String
   stopId        String?
-  stop          TripStop?      @relation(fields: [stopId], references: [id])
+  stop          TripStop? @relation(fields: [stopId], references: [id])
   stopLabel     String?
   odometerMiles Float?
   lat           Float?
   lon           Float?
-  at            DateTime       @default(now())
+  at            DateTime  @default(now())
 
   @@index([tripId, at])
 }
 
-enum TripEventType {
-  TRIP_START
-  ARRIVED_PICKUP
-  LEFT_PICKUP
-  ARRIVED_DELIVERY
-  LEFT_DELIVERY
-  CROSSED_BORDER
-  DROP_HOOK
-  TRIP_FINISHED
-}
-
 model TripStop {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   tripId      String
-  trip        Trip     @relation(fields: [tripId], references: [id])
+  trip        Trip        @relation(fields: [tripId], references: [id])
   seq         Int
   stopType    String
   name        String?
@@ -156,59 +145,60 @@ model TripStop {
   scheduledAt DateTime?
   lat         Float?
   lon         Float?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   events      Event[]
-  tripEvents TripEvent[]
+  tripEvents  TripEvent[]
 }
 
 model Driver {
-  id                   String   @id @default(cuid())
-  name                 String   @unique
-  type                 String?
-  license              String?
-  homeBase             String?
-  active               Boolean  @default(true)
-  hoursAvailableToday  Float?
-  milesLast7d          Int?
-  onTimeScore          Float?
-  fastApproved         Boolean? @default(false)
-  preferredCustomers   String?
-  blockedCustomers     String?
-  notes                String?
-  trips                Trip[]   @relation("TripDriver")
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  type                String?
+  license             String?
+  homeBase            String?
+  active              Boolean  @default(true)
+  hoursAvailableToday Float?
+  milesLast7d         Int?
+  onTimeScore         Float?
+  fastApproved        Boolean? @default(false)
+  preferredCustomers  String?
+  blockedCustomers    String?
+  notes               String?
+  trips               Trip[]   @relation("TripDriver")
 }
 
 model Unit {
-  id               String   @id @default(cuid())
-  code             String   @unique
-  type             String?
-  capacity         String?
-  homeBase         String?
-  active           Boolean  @default(true)
-  isOnHold         Boolean  @default(false)
-  weeklyFixedCost  Decimal?
-  status           String?  @default("Available")
-  availableFrom    DateTime?
-  lastKnownLat     Float?
-  lastKnownLon     Float?
-  lastKnownAt      DateTime?
-  lastMarginPct    Decimal?
-  restrictions     String?
-  trips            Trip[]   @relation("TripUnit")
+  id              String    @id @default(cuid())
+  code            String    @unique
+  type            String?
+  capacity        String?
+  homeBase        String?
+  active          Boolean   @default(true)
+  isOnHold        Boolean   @default(false)
+  weeklyFixedCost Decimal?
+  status          String?   @default("Available")
+  availableFrom   DateTime?
+  lastKnownLat    Float?
+  lastKnownLon    Float?
+  lastKnownAt     DateTime?
+  lastMarginPct   Decimal?
+  restrictions    String?
+  trips           Trip[]    @relation("TripUnit")
 }
 
 model Rate {
-  id         String   @id @default(cuid())
-  type       String?
-  zone       String?
-  rpm        Decimal?
+  id            String   @id @default(cuid())
+  type          String?
+  zone          String?
+  rpm           Decimal?
   fuelSurcharge Decimal?
-  fixedCPM   Decimal
-  wageCPM    Decimal
-  addOnsCPM  Decimal
-  rollingCPM Decimal
-  trips      Trip[]  @relation("TripRate")
+  fixedCPM      Decimal
+  wageCPM       Decimal
+  addOnsCPM     Decimal
+  rollingCPM    Decimal
+  trips         Trip[]   @relation("TripRate")
+
   @@index([type])
   @@index([zone])
 }
@@ -222,6 +212,7 @@ model RateSetting {
   note      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   @@unique([rateKey, category])
   @@index([category])
 }
@@ -243,6 +234,7 @@ model Rule {
   note      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   @@index([ruleKey, scope])
   @@index([scope])
 }
