@@ -26,17 +26,17 @@ type SafeDriver = {
   homeBase: string | null;
   hoursAvailableToday: number | null;
   onTimeScore: number | null;
-  type: string;
-  preferredCustomers: string[];
-  blockedCustomers: string[];
+  type: string | null;
+  preferredCustomers: string | null;
+  blockedCustomers: string | null;
 };
 
 type SafeUnit = {
   id: string;
   code: string;
-  type: string;
+  type: string | null;
   homeBase: string | null;
-  status: string;
+  status: string | null;
   isOnHold: boolean;
   active: boolean;
   lastKnownLat: number | null;
@@ -45,8 +45,8 @@ type SafeUnit = {
 
 type SafeRate = {
   id: string;
-  type: string;
-  zone: string;
+  type: string | null;
+  zone: string | null;
   rpm: number | null;
   fixedCPM: number;
   wageCPM: number;
@@ -112,18 +112,18 @@ const toSafeDrivers = (drivers: Awaited<ReturnType<typeof prisma.driver.findMany
     homeBase: driver.homeBase,
     hoursAvailableToday: driver.hoursAvailableToday ?? null,
     onTimeScore: driver.onTimeScore ?? null,
-    type: driver.type,
-    preferredCustomers: driver.preferredCustomers,
-    blockedCustomers: driver.blockedCustomers,
+    type: driver.type ?? null,
+    preferredCustomers: driver.preferredCustomers ?? null,
+    blockedCustomers: driver.blockedCustomers ?? null,
   }));
 
 const toSafeUnits = (units: Awaited<ReturnType<typeof prisma.unit.findMany>>): SafeUnit[] =>
   units.map((unit) => ({
     id: unit.id,
     code: unit.code,
-    type: unit.type,
+    type: unit.type ?? null,
     homeBase: unit.homeBase,
-    status: unit.status,
+    status: unit.status ?? null,
     isOnHold: unit.isOnHold,
     active: unit.active,
     lastKnownLat: unit.lastKnownLat ?? null,
@@ -133,8 +133,8 @@ const toSafeUnits = (units: Awaited<ReturnType<typeof prisma.unit.findMany>>): S
 const toSafeRates = (rates: Awaited<ReturnType<typeof prisma.rate.findMany>>): SafeRate[] =>
   rates.map((rate) => ({
     id: rate.id,
-    type: rate.type,
-    zone: rate.zone,
+    type: rate.type ?? null,
+    zone: rate.zone ?? null,
     rpm: rate.rpm ? Number(rate.rpm) : null,
     fixedCPM: Number(rate.fixedCPM),
     wageCPM: Number(rate.wageCPM),
