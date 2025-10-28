@@ -107,41 +107,37 @@ const OrderSnapshotCard = ({
       </div>
 
       {selectedOrder ? (
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Customer</h3>
-              <p className="mt-1 text-sm font-medium text-neutral-100">{selectedOrder.customer}</p>
-              <p className="text-xs text-neutral-400">
-                {selectedOrder.origin} → {selectedOrder.destination}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Pickup Window</h3>
-              <p className="mt-1 text-sm text-neutral-200">
-                {formatWindow(selectedOrder.puWindowStart, selectedOrder.puWindowEnd)}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Delivery Window</h3>
-              <p className="mt-1 text-sm text-neutral-200">
-                {formatWindow(selectedOrder.delWindowStart, selectedOrder.delWindowEnd)}
-              </p>
-            </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-3 lg:gap-4">
+          <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Customer</h3>
+            <p className="mt-1 text-sm font-medium text-neutral-100">{selectedOrder.customer}</p>
+            <p className="text-xs text-neutral-400">
+              {selectedOrder.origin} → {selectedOrder.destination}
+            </p>
           </div>
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Dispatcher Notes</h3>
-              <p className="mt-1 text-xs leading-relaxed text-neutral-400">
-                {selectedOrder.notes ?? "No special handling requirements recorded."}
-              </p>
-            </div>
-            <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Trip Context</div>
-              <p className="mt-2 text-xs text-neutral-300">
-                Validate guardrails before booking. AI recommendations factor live rates, driver scorecards, and dwell risk.
-              </p>
-            </div>
+          <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Pickup Window</h3>
+            <p className="mt-1 text-sm text-neutral-200">
+              {formatWindow(selectedOrder.puWindowStart, selectedOrder.puWindowEnd)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Delivery Window</h3>
+            <p className="mt-1 text-sm text-neutral-200">
+              {formatWindow(selectedOrder.delWindowStart, selectedOrder.delWindowEnd)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-3 lg:col-span-2">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Dispatcher Notes</h3>
+            <p className="mt-1 text-xs leading-relaxed text-neutral-400">
+              {selectedOrder.notes ?? "No special handling requirements recorded."}
+            </p>
+          </div>
+          <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Trip Context</div>
+            <p className="mt-2 text-xs text-neutral-300">
+              Validate guardrails before booking. AI recommendations factor live rates, driver scorecards, and dwell risk.
+            </p>
           </div>
         </div>
       ) : (
