@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DivIcon } from "leaflet";
 import L from "leaflet";
 import {
@@ -165,6 +165,8 @@ const FleetMap = ({ units, trips }: FleetMapProps) => {
       typeof trip.destination?.lon === "number"
   );
 
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
     const DefaultIcon = L.icon({
       iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url).toString(),
@@ -179,6 +181,7 @@ const FleetMap = ({ units, trips }: FleetMapProps) => {
       popupAnchor: [1, -34],
     });
     L.Marker.prototype.options.icon = DefaultIcon;
+    setIsReady(true);
   }, []);
 
   const originIcons = useMemo(() => {
@@ -199,13 +202,15 @@ const FleetMap = ({ units, trips }: FleetMapProps) => {
     <div className="relative h-[360px] w-full overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(30,64,175,0.18),_rgba(2,6,23,0.85))]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.12),transparent_55%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[length:20px_20px] opacity-30" />
-      <MapContainer
-        center={DEFAULT_CENTER}
-        zoom={DEFAULT_ZOOM}
-        zoomControl={false}
-        className="relative z-10 h-full w-full"
-        scrollWheelZoom
-      >
+
+      {isReady ? (
+        <MapContainer
+          center={DEFAULT_CENTER}
+          zoom={DEFAULT_ZOOM}
+          zoomControl={false}
+          className="relative z-10 h-full w-full"
+          scrollWheelZoom
+        >
         <ZoomControl position="topright" />
         <TileLayer url={tileLayerUrl} attribution={tileLayerAttribution} />
 
@@ -297,7 +302,12 @@ const FleetMap = ({ units, trips }: FleetMapProps) => {
             </CircleMarker>
           );
         })}
-      </MapContainer>
+        </MapContainer>
+      ) : (
+        <div className="relative z-10 flex h-full w-full items-center justify-center text-sm text-slate-300/80">
+          Loading map…
+        </div>
+      )}
 
       <div className="absolute bottom-4 right-4 z-20 rounded-full border border-white/10 bg-slate-900/80 px-4 py-2 text-[11px] text-slate-200 shadow-lg shadow-black/40 backdrop-blur">
         <div className="flex items-center gap-4">
