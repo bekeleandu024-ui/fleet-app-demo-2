@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 
 import Link from "next/link";
 
-import FleetMapPanel from "./FleetMapPanel";
+import type { FleetMapProps, UnitStatus } from "@/components/FleetMap";
+import FleetMapClient from "./FleetMapClient";
 import prisma from "@/lib/prisma";
 
 interface TripWithRelations {
@@ -56,31 +57,45 @@ export default async function FleetPage() {
   const atRiskTripsCount = activeTrips.filter((trip) => classifyRisk(trip.marginPct ?? 0, trip.delayRiskPct ?? 0) === "danger").length;
   const unitsOnHold = activeUnits.filter((unit) => unit.isOnHold).length;
 
-  const tripsForMap = activeTrips.map((trip) => {
-    const margin = Number(trip.marginPct ?? 0);
-    const delayRisk = Number(trip.delayRiskPct ?? 0);
-    const tripLastKnownLat = (trip.lastKnownLat ?? trip.unitRef?.lastKnownLat) ?? null;
-    const tripLastKnownLon = (trip.lastKnownLon ?? trip.unitRef?.lastKnownLon) ?? null;
+  const mapUnits: FleetMapProps["units"] = activeUnits
+    .filter(
+      (unit) => typeof unit.lastKnownLat === "number" && typeof unit.lastKnownLon === "number"
+    )
+    .map((unit) => ({
+      unitId: unit.code,
+      status: classifyUnitStatus(unit),
+      lastKnownLat: unit.lastKnownLat as number,
+      lastKnownLon: unit.lastKnownLon as number,
+      homeBase: unit.homeBase ?? null,
+      costPerWeek: typeof unit.weeklyFixedCost === "number" ? Number(unit.weeklyFixedCost) : null,
+    }));
 
-    return {
-      id: trip.id,
-      driver: trip.driver,
-      unit: trip.unit,
-      marginPct: margin,
-      delayRiskPct: delayRisk,
-      currentLat: tripLastKnownLat ?? trip.originLat ?? null,
-      currentLon: tripLastKnownLon ?? trip.originLon ?? null,
-      risk: classifyRisk(margin, delayRisk),
-    };
-  });
+  const mapTrips: FleetMapProps["trips"] = activeTrips
+    .filter(
+      (trip) =>
+        typeof trip.originLat === "number" &&
+        typeof trip.originLon === "number" &&
+        typeof trip.destLat === "number" &&
+        typeof trip.destLon === "number"
+    )
+    .map((trip) => {
+      const margin = Number(trip.marginPct ?? 0);
+      const delayRisk = Number(trip.delayRiskPct ?? 0);
+      const origin = trip.order?.origin ?? "Origin TBD";
+      const destination = trip.order?.destination ?? "Destination TBD";
+      const riskScore = Math.max(0, Math.min(1, delayRisk));
 
-  const unitsForMap = activeUnits.map((unit) => ({
-    code: unit.code,
-    status: unit.status,
-    lat: unit.lastKnownLat ?? null,
-    lon: unit.lastKnownLon ?? null,
-    risk: unit.isOnHold ? ("danger" as const) : unit.status === "Dispatched" ? ("warn" as const) : ("ok" as const),
-  }));
+      return {
+        tripId: trip.id,
+        driver: trip.driver || "Unassigned",
+        unitId: trip.unit,
+        lane: `${origin} → ${destination}`,
+        origin: { lat: trip.originLat as number, lon: trip.originLon as number },
+        destination: { lat: trip.destLat as number, lon: trip.destLon as number },
+        risk: riskScore,
+        marginPct: margin,
+      };
+    });
 
   return (
     <div className="space-y-8">
@@ -104,7 +119,7 @@ export default async function FleetPage() {
             </div>
           </div>
           <div className="mt-4">
-            <FleetMapPanel units={unitsForMap} trips={tripsForMap} />
+            <FleetMapClient units={mapUnits} trips={mapTrips} />
           </div>
         </div>
 
@@ -244,6 +259,34 @@ function Badge({ tone, children }: { tone: "ok" | "warn" | "danger"; children: R
       ? "border-yellow-400/30 bg-yellow-400/10 text-yellow-300"
       : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
   return <span className={`inline-flex items-center gap-1 rounded border px-2 py-[2px] text-[10px] font-medium leading-none ${toneClass}`}>{children}</span>;
+}
+
+function classifyUnitStatus(unit: UnitRow): UnitStatus {
+  if (unit.isOnHold) {
+    return "action";
+  }
+
+  const normalized = (unit.status ?? "").toLowerCase();
+
+  if (
+    normalized.includes("maintenance") ||
+    normalized.includes("repair") ||
+    normalized.includes("hold") ||
+    normalized.includes("down")
+  ) {
+    return "action";
+  }
+
+  if (
+    normalized.includes("dispatch") ||
+    normalized.includes("route") ||
+    normalized.includes("transit") ||
+    normalized.includes("trip")
+  ) {
+    return "watch";
+  }
+
+  return "available";
 }
 
 function classifyRisk(marginPct: number, delayRiskPct: number): "ok" | "warn" | "danger" {
