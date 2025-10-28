@@ -1,40 +1,23 @@
 import { MarketLane } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
+import { estimateLaneRpm, normalizeMarketCode } from "./marketRateModel";
 import prisma from "./prisma";
 
 export async function fetchSpotRate(
   origin: string,
   destination: string,
 ): Promise<{ rpm: number; source: string }> {
-  const rateFeedUrl = process.env.RATE_FEED_URL;
-  if (!rateFeedUrl) {
-    throw new Error("Rate feed URL is not configured");
-  }
+  const normalizedOrigin = normalizeMarketCode(origin);
+  const normalizedDestination = normalizeMarketCode(destination);
 
-  const url = `${rateFeedUrl}?origin=${encodeURIComponent(origin)}&dest=${encodeURIComponent(destination)}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${process.env.RATE_FEED_KEY ?? ""}`,
-    },
-  });
-
-  if (!response.ok) {
+  if (!normalizedOrigin || !normalizedDestination) {
     throw new Error("No rate available for that lane");
   }
 
-  const payload = (await response.json().catch(() => null)) as
-    | { rpm?: unknown; source?: unknown }
-    | null;
+  const { rpm, source } = estimateLaneRpm(normalizedOrigin, normalizedDestination);
 
-  if (!payload || typeof payload.rpm !== "number" || Number.isNaN(payload.rpm)) {
-    throw new Error("No rate available for that lane");
-  }
-
-  const source = typeof payload.source === "string" && payload.source.trim().length > 0 ? payload.source : "Unknown";
-
-  return { rpm: payload.rpm, source };
+  return { rpm, source };
 }
 
 export async function upsertMarketLane(
