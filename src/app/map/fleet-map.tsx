@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import maplibregl, { LngLatBounds, Map as MapLibreMap, Marker, Popup } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+import type { Map as MapLibreMap, Marker, Popup } from "maplibre-gl";
+import { loadMapLibre, type MapLibreModule } from "@/lib/load-maplibre";
 import "@/styles/Intellifleet.css";
 
 export type FleetUnitStatus = "onTrack" | "watch" | "action";
@@ -47,6 +47,8 @@ type MarkerBundle = {
   popup: Popup;
   element: HTMLButtonElement;
 };
+
+type LngLatBoundsInstance = InstanceType<MapLibreModule["LngLatBounds"]>;
 
 const DEFAULT_CENTER: [number, number] = [-79.4, 43.7];
 const DEFAULT_ZOOM = 5.2;
@@ -267,10 +269,12 @@ export function FleetMap({
 }: FleetMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const maplibreRef = useRef<MapLibreModule | null>(null);
   const markersRef = useRef<Map<string, MarkerBundle>>(new Map());
   const [aiQuery, setAiQuery] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [lastPrompt, setLastPrompt] = useState("");
+  const [mapError, setMapError] = useState<string | null>(null);
 
   const renderableUnits = useMemo(
     () =>
@@ -289,30 +293,57 @@ export function FleetMap({
   const aiInsights = useMemo(() => computeInsights(renderableUnits, statusTokens), [renderableUnits, statusTokens]);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!containerRef.current || mapRef.current) {
       return;
     }
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: MAP_STYLE,
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-      pitch: 42,
-      bearing: -18,
-      attributionControl: false,
-    });
+    setMapError(null);
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: "imperial" }), "bottom-right");
+    loadMapLibre()
+      .then((lib) => {
+        if (cancelled || !containerRef.current) {
+          return;
+        }
 
-    mapRef.current = map;
+        if (!lib) {
+          setMapError("Interactive map is unavailable in this environment.");
+          return;
+        }
+
+        maplibreRef.current = lib;
+
+        const map = new lib.Map({
+          container: containerRef.current,
+          style: MAP_STYLE,
+          center: DEFAULT_CENTER,
+          zoom: DEFAULT_ZOOM,
+          pitch: 42,
+          bearing: -18,
+          attributionControl: false,
+        });
+
+        map.addControl(new lib.NavigationControl({ showCompass: false }), "top-right");
+        map.addControl(new lib.ScaleControl({ maxWidth: 110, unit: "imperial" }), "bottom-right");
+
+        mapRef.current = map;
+      })
+      .catch((error) => {
+        console.error("MapLibre failed to load", error);
+        if (!cancelled) {
+          setMapError("Interactive map failed to load. Please refresh to try again.");
+        }
+      });
 
     return () => {
+      cancelled = true;
       markersRef.current.forEach((bundle) => bundle.marker.remove());
       markersRef.current.clear();
-      map.remove();
-      mapRef.current = null;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
   }, []);
 
@@ -325,7 +356,8 @@ export function FleetMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    const lib = maplibreRef.current;
+    if (!map || !lib) return;
 
     const existingIds = new Set(renderableUnits.map((unit) => unit.id));
     const storedMarkers = markersRef.current;
@@ -346,8 +378,8 @@ export function FleetMap({
 
       if (!existing) {
         const element = buildMarkerElement(token);
-        const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 18 });
-        const marker = new maplibregl.Marker({ element }).setLngLat(lngLat).addTo(map);
+        const popup = new lib.Popup({ closeButton: false, closeOnClick: false, offset: 18 });
+        const marker = new lib.Marker({ element }).setLngLat(lngLat).addTo(map);
 
         const showPopup = () => {
           popup.setLngLat(lngLat).setHTML(popupHtml).addTo(map);
@@ -371,9 +403,12 @@ export function FleetMap({
     });
 
     if (renderableUnits.length) {
-      const bounds = renderableUnits.reduce(
+      const bounds = renderableUnits.reduce<LngLatBoundsInstance>(
         (acc, unit) => acc.extend([unit.lon, unit.lat]),
-        new LngLatBounds([renderableUnits[0].lon, renderableUnits[0].lat], [renderableUnits[0].lon, renderableUnits[0].lat]),
+        new lib.LngLatBounds(
+          [renderableUnits[0].lon, renderableUnits[0].lat],
+          [renderableUnits[0].lon, renderableUnits[0].lat],
+        ) as LngLatBoundsInstance,
       );
       if (bounds && bounds.isEmpty()) {
         map.easeTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
@@ -399,6 +434,11 @@ export function FleetMap({
       className={`relative w-full overflow-hidden rounded-xl border border-white/10 bg-[#070c1a] shadow-[0_30px_120px_rgba(0,0,0,0.8)] ${heightClassName}`}
     >
       <div ref={containerRef} className="fleet-maplibre-container" />
+      {mapError ? (
+        <div className="pointer-events-none absolute inset-0 z-[402] flex items-center justify-center bg-[#070c1a]/85 px-6 text-center text-[0.75rem] text-white/70">
+          {mapError}
+        </div>
+      ) : null}
 
       {laneCallout ? (
         <div className="pointer-events-none absolute left-6 top-6 z-[401]">
