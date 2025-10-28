@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 
+import BookingRecommendation from "./BookingRecommendation";
 import prisma from "@/lib/prisma";
 import { suggestPlanAndPrice } from "@/server/suggest-plan";
 
@@ -72,6 +73,8 @@ export default async function PlanOrderPage({ params }: { params: { id: string }
           </div>
         </div>
       </div>
+
+      <BookingRecommendation orderId={order.id} />
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-5">
