@@ -32,10 +32,14 @@ export default function CollapsibleNavPanel({ sections }: { sections: NavSection
   return (
     <aside
       className={`w-full transition-[flex-basis] duration-300 ease-out lg:-ml-6 lg:flex-shrink-0 ${
-        isOpen ? "lg:basis-72" : "lg:basis-16"
+        isOpen ? "lg:basis-72" : "lg:basis-12"
       }`}
     >
-      <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60 p-4 shadow-xl shadow-black/40">
+      <div
+        className={`relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60 shadow-xl shadow-black/40 ${
+          isOpen ? "p-4" : "px-2 py-4"
+        }`}
+      >
         <div className="flex items-center justify-between gap-3">
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Navigate</div>
           <button
