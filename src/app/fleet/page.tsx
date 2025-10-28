@@ -176,22 +176,16 @@ export default async function FleetPage() {
                         ) : null}
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link
-                        href={`/drivers/logs/${trip.id}`}
-                        className="inline-flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-[11px] font-medium text-emerald-200 transition hover:border-emerald-300/60 hover:text-emerald-100"
-                      >
-                        Open Log
-                      </Link>
-                      {trip.status === "Created" || trip.status === "Assigned" ? (
+                    {trip.status === "Created" || trip.status === "Assigned" ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <Link
                           href={`/book?tripId=${trip.id}`}
                           className="inline-flex items-center gap-1 rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1 text-[11px] font-medium text-sky-200 transition hover:border-sky-300/60 hover:text-sky-100"
                         >
                           Book Page
                         </Link>
-                      ) : null}
-                    </div>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })

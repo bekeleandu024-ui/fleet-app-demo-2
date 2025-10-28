@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import prisma from "@/lib/prisma";
 
 import DashboardCard from "@/src/components/DashboardCard";
@@ -234,12 +232,6 @@ export default async function TripsPage() {
                         minute: "2-digit",
                       })}
                     </div>
-                    <Link
-                      href={`/drivers/logs/${t.id}`}
-                      className="mt-1 inline-block text-[10px] text-emerald-200 underline-offset-4 transition hover:text-emerald-100"
-                    >
-                      Driver Log
-                    </Link>
                   </td>
 
                   {/* Driver / Unit */}
