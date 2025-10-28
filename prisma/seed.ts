@@ -23,6 +23,7 @@ async function main() {
   await prisma.order.deleteMany();
   await prisma.rateSetting.deleteMany();
   await prisma.rate.deleteMany();
+  await prisma.marketLane.deleteMany();
   await prisma.driver.deleteMany();
   await prisma.unit.deleteMany();
 
@@ -130,6 +131,29 @@ async function main() {
       { rateKey: "TRUCK_WK", category: "TRK-101", value: new Prisma.Decimal(650), unit: "$", note: "Truck payment" },
       { rateKey: "TRUCK_WK", category: "TRK-202", value: new Prisma.Decimal(620), unit: "$", note: "Truck payment" },
       { rateKey: "TRUCK_WK", category: "TRK-303", value: new Prisma.Decimal(710), unit: "$", note: "Truck payment" },
+    ],
+  });
+
+  await prisma.marketLane.createMany({
+    data: [
+      {
+        origin: "GTA",
+        destination: "CHI",
+        rpm: 2.85,
+        source: "DAT Trendlines",
+      },
+      {
+        origin: "GTA",
+        destination: "NYC",
+        rpm: 3.1,
+        source: "DAT Trendlines",
+      },
+      {
+        origin: "DAL",
+        destination: "ATL",
+        rpm: 2.45,
+        source: "CarrierDirect Benchmark",
+      },
     ],
   });
 
