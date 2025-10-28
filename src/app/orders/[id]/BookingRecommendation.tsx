@@ -120,17 +120,23 @@ export default async function BookingRecommendation({ orderId }: BookingRecommen
             {formatNumber(market.quotedRPM, { prefix: "$", suffix: "/mi" })}
           </div>
           <p className="text-[0.8rem] text-neutral-400">
-            Market index {market.marketRPM.toFixed(2)} RPM. Source {market.source}.
+            {market.marketRPM !== null && market.source
+              ? `Market index ${market.marketRPM.toFixed(2)} RPM. Source ${market.source}.`
+              : "No market index available for this lane."}
           </p>
         </div>
         <div className="flex-1 rounded-lg border border-neutral-700 bg-[#1a1c21] p-4">
           <div className="text-[0.7rem] uppercase tracking-wide text-neutral-400">ETA &amp; Miles</div>
           <div className="mt-2 text-xl font-semibold text-neutral-100">
-            {Math.round(routing.miles)} mi • {routing.etaHours.toFixed(1)} hr
+            {routing.miles !== null ? `${Math.round(routing.miles)} mi` : "— mi"} • {routing.etaHours !== null
+              ? `${routing.etaHours.toFixed(1)} hr`
+              : "— hr"}
           </div>
           <p className="text-[0.8rem] text-neutral-400">
-            Live traffic adds {routing.trafficDelayMin} min vs free-flow. Border wait ~
-            {routing.borderDelayMin} min.
+            {routing.trafficDelayMin !== null
+              ? `Routing adds ${routing.trafficDelayMin.toFixed(0)} min vs a 55 mph baseline.`
+              : "Traffic delta unavailable."}
+            {routing.crossesBorder ? " Route crosses an international border." : ""}
           </p>
         </div>
       </div>
@@ -167,7 +173,10 @@ export default async function BookingRecommendation({ orderId }: BookingRecommen
             Margin guardrail under review at {margin.projectedMarginPct !== null ? `${margin.projectedMarginPct.toFixed(1)}%` : "—"}.
           </p>
           <p>
-            Quote is {formatNumber(market.quotedRPM, { prefix: "$", suffix: "/mi" })} vs market {market.marketRPM.toFixed(2)} RPM.
+            Quote is {formatNumber(market.quotedRPM, { prefix: "$", suffix: "/mi" })}
+            {market.marketRPM !== null
+              ? ` vs market ${market.marketRPM.toFixed(2)} RPM.`
+              : " with no current market index."}
           </p>
           <p>
             Driver has {formatNumber(driverStatus.availableHours, { digits: 1 })} hours projected drive time with buffer for dwell.
