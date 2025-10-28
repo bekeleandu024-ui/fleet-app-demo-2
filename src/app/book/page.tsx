@@ -214,61 +214,262 @@ export default async function BookPage({
     ? safeRates.find((rate) => rate.id === suggestion.selectedRateId) ?? safeRates[0] ?? null
     : null;
 
+  const ordersReadyCount = safeOrders.length;
+  const driversWithHoursCount = safeDrivers.filter(
+    (driver) => (driver.hoursAvailableToday ?? 0) >= 6,
+  ).length;
+  const stagedUnitsCount = safeUnits.filter((unit) => {
+    if (!unit.status) {
+      return true;
+    }
+
+    const status = unit.status.toLowerCase();
+
+    return ["available", "idle", "ready", "staged"].some((keyword) =>
+      status.includes(keyword),
+    );
+  }).length;
+
+  const driverShortlist = suggestion
+    ? [
+        {
+          id: suggestion.suggestedDriver.id,
+          name: suggestion.suggestedDriver.name,
+          meta: suggestion.suggestedDriver.reason,
+          highlight: true,
+        },
+        ...safeDrivers
+          .filter((driver) => driver.id !== suggestion.suggestedDriver.id)
+          .slice(0, 2)
+          .map((driver) => ({
+            id: driver.id,
+            name: driver.name,
+            meta: driver.homeBase ? `Home ${driver.homeBase}` : "Standby",
+            highlight: false,
+          })),
+      ]
+    : safeDrivers.slice(0, 3).map((driver, index) => ({
+        id: driver.id,
+        name: driver.name,
+        meta: driver.homeBase ? `Home ${driver.homeBase}` : "Standby",
+        highlight: index === 0,
+      }));
+
+  const unitShortlist = suggestion
+    ? [
+        {
+          id: suggestion.suggestedUnit.id,
+          code: suggestion.suggestedUnit.code,
+          meta: suggestion.suggestedUnit.reason,
+          highlight: true,
+        },
+        ...safeUnits
+          .filter((unit) => unit.id !== suggestion.suggestedUnit.id)
+          .slice(0, 2)
+          .map((unit) => ({
+            id: unit.id,
+            code: unit.code,
+            meta: unit.homeBase ? `Home ${unit.homeBase}` : unit.status ?? "Available",
+            highlight: false,
+          })),
+      ]
+    : safeUnits.slice(0, 3).map((unit, index) => ({
+        id: unit.id,
+        code: unit.code,
+        meta: unit.homeBase ? `Home ${unit.homeBase}` : unit.status ?? "Available",
+        highlight: index === 0,
+      }));
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-white">Booking Console</h1>
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-semibold text-white">Trip Booking Control Center</h1>
         <p className="text-sm text-neutral-400">
-          Choose a qualified order and apply the AI recommendation before dispatching.
+          Prioritize qualified freight, confirm resources, and launch the trip without leaving the console.
         </p>
       </div>
 
-      <div className="md:grid md:grid-cols-[1fr_2fr] md:items-start md:gap-6 space-y-6 md:space-y-0">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-          <div className="text-sm font-semibold text-neutral-200">Qualified Orders</div>
-          <ul className="mt-4 space-y-3">
-            {safeOrders.map((order) => {
-              const href = `/book?orderId=${order.id}`;
-              const isActive = order.id === selectedOrderId;
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Qualified Orders Ready</div>
+          <div className="mt-2 text-2xl font-semibold text-emerald-400">{ordersReadyCount}</div>
+          <p className="mt-1 text-xs text-neutral-400">Loads cleared for booking and waiting for assignment.</p>
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Drivers With 6+ Hours</div>
+          <div className="mt-2 text-2xl font-semibold text-sky-400">{driversWithHoursCount}</div>
+          <p className="mt-1 text-xs text-neutral-400">Hours-of-service verified and ready to roll.</p>
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Units Staged</div>
+          <div className="mt-2 text-2xl font-semibold text-amber-400">{stagedUnitsCount}</div>
+          <p className="mt-1 text-xs text-neutral-400">Tractors and trailers cleared for dispatch today.</p>
+        </div>
+      </div>
 
-              return (
-                <li key={order.id}>
-                  <Link
-                    href={href}
-                    className={`block rounded-lg border px-3 py-3 transition ${
-                      isActive
-                        ? "border-emerald-500/60 bg-emerald-500/10"
-                        : "border-neutral-800 bg-neutral-950/40 hover:border-neutral-700"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-neutral-100">{order.customer}</div>
-                        <div className="text-xs text-neutral-400">
-                          {order.origin} → {order.destination}
+      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
+            <div className="text-sm font-semibold text-neutral-200">Qualified Orders</div>
+            <ul className="mt-4 space-y-3">
+              {safeOrders.map((order) => {
+                const href = `/book?orderId=${order.id}`;
+                const isActive = order.id === selectedOrderId;
+
+                return (
+                  <li key={order.id}>
+                    <Link
+                      href={href}
+                      className={`block rounded-lg border px-3 py-3 transition ${
+                        isActive
+                          ? "border-emerald-500/60 bg-emerald-500/10"
+                          : "border-neutral-800 bg-neutral-950/40 hover:border-neutral-700"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-neutral-100">{order.customer}</div>
+                          <div className="text-xs text-neutral-400">
+                            {order.origin} → {order.destination}
+                          </div>
+                          <div className="mt-1 text-[11px] text-neutral-500">
+                            {order.requiredTruck ? `${order.requiredTruck} · ` : ""}
+                            PU {formatWindow(order.puWindowStart, order.puWindowEnd)}
+                          </div>
                         </div>
-                        <div className="mt-1 text-[11px] text-neutral-500">
-                          {order.requiredTruck ? `${order.requiredTruck} · ` : ""}
-                          PU {formatWindow(order.puWindowStart, order.puWindowEnd)}
-                        </div>
+                        <span className="rounded-full bg-neutral-800 px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400">
+                          {isActive ? "In Focus" : "Qualified"}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-neutral-800 px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400">
-                        Qualified
-                      </span>
-                    </div>
-                  </Link>
+                    </Link>
+                  </li>
+                );
+              })}
+              {safeOrders.length === 0 && (
+                <li className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 px-3 py-6 text-center text-xs text-neutral-500">
+                  No qualified orders waiting.
                 </li>
-              );
-            })}
-            {safeOrders.length === 0 && (
-              <li className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 px-3 py-6 text-center text-xs text-neutral-500">
-                No qualified orders waiting.
-              </li>
-            )}
-          </ul>
+              )}
+            </ul>
+          </div>
+
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-neutral-200">Crew Lineup</div>
+              <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-500">Live availability</span>
+            </div>
+            <div className="mt-4 grid gap-6">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Drivers</h3>
+                <ul className="mt-2 space-y-2">
+                  {driverShortlist.length > 0 ? (
+                    driverShortlist.map((driver) => (
+                      <li
+                        key={driver.id}
+                        className={`rounded-lg border px-3 py-2 text-sm transition ${
+                          driver.highlight
+                            ? "border-emerald-500/60 bg-emerald-500/10 text-neutral-50"
+                            : "border-neutral-800 bg-neutral-950/40 text-neutral-200"
+                        }`}
+                      >
+                        <div className="font-medium">{driver.name}</div>
+                        <div className="text-[11px] text-neutral-400">{driver.meta}</div>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 px-3 py-4 text-center text-xs text-neutral-500">
+                      All drivers currently dispatched.
+                    </li>
+                  )}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Units</h3>
+                <ul className="mt-2 space-y-2">
+                  {unitShortlist.length > 0 ? (
+                    unitShortlist.map((unit) => (
+                      <li
+                        key={unit.id}
+                        className={`rounded-lg border px-3 py-2 text-sm transition ${
+                          unit.highlight
+                            ? "border-amber-500/60 bg-amber-500/10 text-neutral-50"
+                            : "border-neutral-800 bg-neutral-950/40 text-neutral-200"
+                        }`}
+                      >
+                        <div className="font-medium">{unit.code}</div>
+                        <div className="text-[11px] text-neutral-400">{unit.meta}</div>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 px-3 py-4 text-center text-xs text-neutral-500">
+                      No idle equipment — check dwell in Fleet.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-neutral-200">Order Snapshot</div>
+                <p className="text-xs text-neutral-400">Key load requirements before assigning resources.</p>
+              </div>
+              {selectedOrder && (
+                <span className="rounded-full border border-neutral-700 bg-neutral-800/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-300">
+                  {selectedOrder.requiredTruck ?? "Standard"}
+                </span>
+              )}
+            </div>
+
+            {selectedOrder ? (
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Customer</h3>
+                    <p className="mt-1 text-sm font-medium text-neutral-100">{selectedOrder.customer}</p>
+                    <p className="text-xs text-neutral-400">
+                      {selectedOrder.origin} → {selectedOrder.destination}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Pickup Window</h3>
+                    <p className="mt-1 text-sm text-neutral-200">
+                      {formatWindow(selectedOrder.puWindowStart, selectedOrder.puWindowEnd)}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Delivery Window</h3>
+                    <p className="mt-1 text-sm text-neutral-200">
+                      {formatWindow(selectedOrder.delWindowStart, selectedOrder.delWindowEnd)}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Dispatcher Notes</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-neutral-400">
+                      {selectedOrder.notes ?? "No special handling requirements recorded."}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Trip Context</div>
+                    <p className="mt-2 text-xs text-neutral-300">
+                      Validate guardrails before booking. AI recommendations factor live rates, driver scorecards, and dwell risk.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6 rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
+                Select an order from the left to review critical load information.
+              </div>
+            )}
+          </div>
+
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
             <div className="flex items-center justify-between">
               <div>
@@ -285,15 +486,17 @@ export default async function BookPage({
             {selectedOrder ? (
               suggestion ? (
                 <div className="mt-4 space-y-5">
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recommended Driver</h3>
-                    <p className="mt-1 text-sm text-neutral-200">{suggestion.suggestedDriver.name}</p>
-                    <p className="text-xs text-neutral-400">{suggestion.suggestedDriver.reason}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recommended Unit</h3>
-                    <p className="mt-1 text-sm text-neutral-200">{suggestion.suggestedUnit.code}</p>
-                    <p className="text-xs text-neutral-400">{suggestion.suggestedUnit.reason}</p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recommended Driver</h3>
+                      <p className="mt-1 text-sm text-neutral-200">{suggestion.suggestedDriver.name}</p>
+                      <p className="text-xs text-neutral-400">{suggestion.suggestedDriver.reason}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recommended Unit</h3>
+                      <p className="mt-1 text-sm text-neutral-200">{suggestion.suggestedUnit.code}</p>
+                      <p className="text-xs text-neutral-400">{suggestion.suggestedUnit.reason}</p>
+                    </div>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
@@ -327,6 +530,22 @@ export default async function BookPage({
                     <p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-neutral-400">
                       {suggestion.notesForDispatcher}
                     </p>
+                  </div>
+                  <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Opportunity Summary</div>
+                    <ul className="mt-2 space-y-1 text-xs text-neutral-300">
+                      <li>
+                        Margin guardrail {suggestion.suggestedRate.estMarginPct >= 0.15 ? "healthy" : "under review"} at
+                        {(suggestion.suggestedRate.estMarginPct * 100).toFixed(1)}%.
+                      </li>
+                      <li>
+                        Quote is ${suggestion.suggestedRate.rpmQuoted.toFixed(2)} vs market {suggestion.suggestedRate.rpmMarket.toFixed(2)} RPM.
+                      </li>
+                      <li>
+                        Driver has {(suggestion.etaEstimate.etaMinutes / 60).toFixed(1)} hours projected drive time with
+                        buffer for dwell.
+                      </li>
+                    </ul>
                   </div>
                   <BookTripButton
                     orderId={selectedOrder.id}
