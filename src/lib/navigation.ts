@@ -12,6 +12,7 @@ export type NavSection = {
 
 export const TOP_NAV_LINKS: NavLink[] = [
   { label: "Dashboard", href: "/" },
+  { label: "Book Trip", href: "/book" },
   { label: "Orders", href: "/orders" },
   { label: "Trips", href: "/trips" },
   { label: "Fleet", href: "/fleet" },
