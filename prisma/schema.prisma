@@ -45,15 +45,23 @@ model Trip {
   weekStart            DateTime?
   type                 String?
   zone                 String?
+  borderCrossings      Int?      @default(0)
+  pickups              Int?      @default(0)
+  deliveries           Int?      @default(0)
+  dropHooks            Int?      @default(0)
   miles                Decimal
   plannedMiles         Decimal?
   actualMiles          Decimal?
+  expectedRevenue      Decimal?
   revenue              Decimal?
   fixedCPM             Decimal?
   wageCPM              Decimal?
   addOnsCPM            Decimal?
   rollingCPM           Decimal?
   totalCPM             Decimal?
+  totalVariableCPM     Decimal?
+  variableCost         Decimal?
+  fixedCost            Decimal?
   totalCost            Decimal?
   profit               Decimal?
   marginPct            Decimal?
