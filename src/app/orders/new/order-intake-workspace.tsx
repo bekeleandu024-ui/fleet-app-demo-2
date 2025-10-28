@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import OcrDropBox from "@/components/ocr-dropbox";
@@ -14,20 +14,6 @@ import type {
 type Props = {
   analyzeAction: (input: DraftOrderInput) => Promise<AnalysisResult>;
   draftEmailAction: (input: DraftOrderInput) => Promise<DraftInfoEmailResult>;
-};
-
-type IntakeParsedOrder = {
-  customer: string;
-  origin: string;
-  destination: string;
-  pickupWindowStart?: string;
-  pickupWindowEnd?: string;
-  deliveryWindowStart?: string;
-  deliveryWindowEnd?: string;
-  requiredTruck?: string;
-  notes?: string;
-  confidence: number;
-  warnings: string[];
 };
 
 type FormState = {
@@ -98,7 +84,6 @@ function toDateTimeInput(value?: string) {
 
 export function OrderIntakeWorkspace({ analyzeAction, draftEmailAction }: Props) {
   const router = useRouter();
-  const intakeFileInputRef = useRef<HTMLInputElement | null>(null);
   const [formValues, setFormValues] = useState<FormState>({
     customer: "",
     origin: "",
@@ -123,10 +108,6 @@ export function OrderIntakeWorkspace({ analyzeAction, draftEmailAction }: Props)
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [intakePending, setIntakePending] = useState(false);
-  const [intakeError, setIntakeError] = useState<string | null>(null);
-  const [intakeConfidence, setIntakeConfidence] = useState<number | null>(null);
-  const [intakeWarnings, setIntakeWarnings] = useState<string[]>([]);
 
   const parsedEntries = useMemo(() => {
     if (!parsed) return [] as Array<[keyof ParsedOrderDraft, string]>;
@@ -138,103 +119,6 @@ export function OrderIntakeWorkspace({ analyzeAction, draftEmailAction }: Props)
       return acc;
     }, []);
   }, [parsed]);
-
-  const applyParsedOrderToForm = useCallback((parsedOrder: ParsedOrderDraft) => {
-    setParsed(parsedOrder);
-    setParsedFields([]);
-    setSelectedFields(() => {
-      const next = emptyCheckboxMap();
-      ORDER_FIELDS.forEach((key) => {
-        if (parsedOrder[key]) {
-          next[key] = true;
-        }
-      });
-      return next;
-    });
-    setRawText("");
-    setAnalysis(null);
-    setEmailDraft(null);
-  }, []);
-
-  const handleIntakeUpload = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      setIntakeError(null);
-      setIntakeWarnings([]);
-      setIntakeConfidence(null);
-      setIntakePending(true);
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const response = await fetch("/api/intake/ocr", {
-          method: "POST",
-          body: formData,
-        });
-
-        const json = await response.json();
-
-        if (!response.ok || !json?.ok) {
-          const message = typeof json?.error === "string" ? json.error : "Unable to read document";
-          throw new Error(message);
-        }
-
-        const parsed: IntakeParsedOrder | undefined = json.parsed;
-        if (!parsed) {
-          throw new Error("OCR service returned no data");
-        }
-
-        setFormValues((current) => {
-          const next = { ...current };
-          if (parsed.customer) next.customer = parsed.customer;
-          if (parsed.origin) next.origin = parsed.origin;
-          if (parsed.destination) next.destination = parsed.destination;
-          if (parsed.requiredTruck) next.requiredTruck = parsed.requiredTruck;
-          if (parsed.pickupWindowStart)
-            next.puWindowStart = toDateTimeInput(parsed.pickupWindowStart);
-          if (parsed.pickupWindowEnd)
-            next.puWindowEnd = toDateTimeInput(parsed.pickupWindowEnd);
-          if (parsed.deliveryWindowStart)
-            next.delWindowStart = toDateTimeInput(parsed.deliveryWindowStart);
-          if (parsed.deliveryWindowEnd)
-            next.delWindowEnd = toDateTimeInput(parsed.deliveryWindowEnd);
-          if (parsed.notes) next.notes = parsed.notes;
-          return next;
-        });
-
-        const parsedDraft: ParsedOrderDraft = {
-          customer: parsed.customer || undefined,
-          origin: parsed.origin || undefined,
-          destination: parsed.destination || undefined,
-          requiredTruck: parsed.requiredTruck || undefined,
-          puWindowStart: parsed.pickupWindowStart,
-          puWindowEnd: parsed.pickupWindowEnd,
-          delWindowStart: parsed.deliveryWindowStart,
-          delWindowEnd: parsed.deliveryWindowEnd,
-          notes: parsed.notes || undefined,
-        };
-
-        applyParsedOrderToForm(parsedDraft);
-
-        setIntakeWarnings(parsed.warnings ?? []);
-        setIntakeConfidence(typeof parsed.confidence === "number" ? parsed.confidence : null);
-        setOcrConfidence(typeof parsed.confidence === "number" ? parsed.confidence * 100 : undefined);
-      } catch (uploadError) {
-        const message = uploadError instanceof Error ? uploadError.message : "Unable to read document";
-        setIntakeError(message);
-        setIntakeConfidence(null);
-      } finally {
-        setIntakePending(false);
-        if (intakeFileInputRef.current) {
-          intakeFileInputRef.current.value = "";
-        }
-      }
-    },
-    [applyParsedOrderToForm]
-  );
 
   const applyDisabled = useMemo(() => {
     if (!parsedEntries.length) return true;
@@ -428,51 +312,6 @@ export function OrderIntakeWorkspace({ analyzeAction, draftEmailAction }: Props)
           Paste a screenshot, review parsed fields, run rule checks, then submit once qualified.
         </p>
       </div>
-
-      <section className="rounded-xl border border-slate-800/60 bg-slate-900/60 p-6 text-sm text-slate-100 shadow-[0_20px_45px_-20px_rgba(15,23,42,0.65)]">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold text-white">AI-assisted intake</h2>
-          <p className="text-xs text-slate-300">
-            Drop a rate sheet or load table and we&apos;ll pre-fill the order details for review.
-          </p>
-        </div>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <label
-            className={`inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-800/40 px-4 py-2 text-sm font-semibold transition hover:border-slate-500 ${
-              intakePending ? "pointer-events-none opacity-70" : ""
-            }`}
-          >
-            <input
-              ref={intakeFileInputRef}
-              type="file"
-              accept="image/*,application/pdf"
-              className="hidden"
-              onChange={handleIntakeUpload}
-            />
-            {intakePending ? "Reading…" : "Upload rate sheet"}
-          </label>
-          {intakeConfidence !== null && (
-            <span className="text-xs uppercase tracking-wide text-slate-300">
-              Confidence: {(intakeConfidence * 100).toFixed(0)}%
-            </span>
-          )}
-        </div>
-        {intakeWarnings.length > 0 && (
-          <ul className="mt-3 space-y-1 text-xs text-amber-300">
-            {intakeWarnings.map((warning) => (
-              <li key={warning} className="flex items-start gap-2">
-                <span aria-hidden>⚠</span>
-                <span>{warning}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {intakeError && (
-          <p className="mt-3 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
-            {intakeError}
-          </p>
-        )}
-      </section>
 
       <OcrDropBox
         onParsed={onParsed}
