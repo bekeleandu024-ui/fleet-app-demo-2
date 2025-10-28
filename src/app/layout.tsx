@@ -4,6 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import React from "react";
 
+import CollapsibleNavPanel from "@/src/components/navigation/collapsible-side-panel";
 import { NAV_SECTIONS, TOP_NAV_LINKS } from "@/src/lib/navigation";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -46,32 +47,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 ))}
               </div>
             </div>
-            <div className="border-t border-slate-800/60 bg-slate-950/80">
-              <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 lg:flex-row lg:gap-8 lg:px-8">
-                {NAV_SECTIONS.map((section) => (
-                  <div key={section.title} className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      {section.title}
-                    </div>
-                    <p className="mt-1 text-sm text-slate-400">{section.blurb}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {section.links.map((link) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          className="group inline-flex items-center gap-2 rounded-full border border-slate-800/80 bg-slate-900/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-emerald-500/60 hover:text-white"
-                        >
-                          <span className="block h-1.5 w-1.5 rounded-full bg-emerald-500/60 transition group-hover:bg-emerald-400" />
-                          {link.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </header>
-          <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+          <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8 lg:px-8">
+            <CollapsibleNavPanel sections={NAV_SECTIONS} />
+            <main className="flex-1">{children}</main>
+          </div>
         </div>
       </body>
     </html>
