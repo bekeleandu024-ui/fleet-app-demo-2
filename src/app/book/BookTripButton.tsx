@@ -260,6 +260,12 @@ export default function BookTripButton(props: BaseProps) {
   const [rpmInput, setRpmInput] = useState(() =>
     Number.isFinite(rpmQuoted) && rpmQuoted > 0 ? rpmQuoted.toFixed(2) : "",
   );
+  const [totalRevenueInput, setTotalRevenueInput] = useState(() => {
+    if (Number.isFinite(miles) && miles > 0 && Number.isFinite(rpmQuoted) && rpmQuoted > 0) {
+      return (miles * rpmQuoted).toFixed(2);
+    }
+    return "";
+  });
   const [fuelInput, setFuelInput] = useState("0");
   const [addOnsInput, setAddOnsInput] = useState("0");
   const [totalCpmInput, setTotalCpmInput] = useState(() =>
@@ -285,16 +291,23 @@ export default function BookTripButton(props: BaseProps) {
 
   const milesValue = useMemo(() => safeNumber(milesInput, 0), [milesInput]);
   const rpmValue = useMemo(() => safeNumber(rpmInput, 0), [rpmInput]);
+  const totalRevenueValue = useMemo(
+    () => safeNumber(totalRevenueInput, 0),
+    [totalRevenueInput],
+  );
   const fuelValue = useMemo(() => safeNumber(fuelInput, 0), [fuelInput]);
   const addOnsValue = useMemo(() => safeNumber(addOnsInput, 0), [addOnsInput]);
   const totalCpmValue = useMemo(() => safeNumber(totalCpmInput, 0), [totalCpmInput]);
 
   const revenueEstimate = useMemo(() => {
+    if (totalRevenueValue > 0) {
+      return Number(totalRevenueValue.toFixed(2));
+    }
     if (milesValue <= 0 || rpmValue <= 0) {
       return 0;
     }
     return Number((milesValue * rpmValue).toFixed(2));
-  }, [milesValue, rpmValue]);
+  }, [milesValue, rpmValue, totalRevenueValue]);
 
   const costEstimate = useMemo(() => {
     if (milesValue <= 0 || totalCpmValue < 0) {
@@ -302,6 +315,19 @@ export default function BookTripButton(props: BaseProps) {
     }
     return Number((milesValue * totalCpmValue).toFixed(2));
   }, [milesValue, totalCpmValue]);
+
+  const projectedRpmEstimate = useMemo(() => {
+    if (milesValue > 0 && revenueEstimate > 0) {
+      const rpm = revenueEstimate / milesValue;
+      if (Number.isFinite(rpm) && rpm > 0) {
+        return Number(rpm.toFixed(2));
+      }
+    }
+    if (rpmValue > 0) {
+      return Number(rpmValue.toFixed(2));
+    }
+    return null;
+  }, [milesValue, revenueEstimate, rpmValue]);
 
   const marginEstimate = useMemo(() => {
     if (revenueEstimate <= 0) {
@@ -343,6 +369,10 @@ export default function BookTripButton(props: BaseProps) {
       setTripZoneInput(option.zone ?? "");
       if (option.rpm != null) {
         setRpmInput(option.rpm.toFixed(2));
+        const milesParsed = safeNumber(milesInput, 0);
+        if (milesParsed > 0) {
+          setTotalRevenueInput((milesParsed * option.rpm).toFixed(2));
+        }
       }
       const total = option.fixedCPM + option.wageCPM + option.addOnsCPM + option.rollingCPM;
       setTotalCpmInput(total.toFixed(2));
@@ -412,7 +442,7 @@ export default function BookTripButton(props: BaseProps) {
         fuelSurcharge: fuelValue,
         addOns: addOnsValue,
         totalCpm: totalCpmValue || null,
-        total: Number((rpmValue * milesValue).toFixed(2)),
+        total: Number(revenueEstimate.toFixed(2)),
         aiReason: notes,
         aiHighlights: highlights,
         aiDiagnostics: null,
@@ -582,6 +612,15 @@ export default function BookTripButton(props: BaseProps) {
               />
             </div>
             <div className="space-y-1">
+              <label className="text-[11px] uppercase tracking-wide text-neutral-500">Total Revenue ($)</label>
+              <input
+                value={totalRevenueInput}
+                onChange={(event) => setTotalRevenueInput(event.target.value)}
+                placeholder="Linehaul total"
+                className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-100 focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+            <div className="space-y-1">
               <label className="text-[11px] uppercase tracking-wide text-neutral-500">Fuel Surcharge ($)</label>
               <input
                 value={fuelInput}
@@ -611,9 +650,9 @@ export default function BookTripButton(props: BaseProps) {
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Projected Revenue</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Projected RPM</div>
               <div className="mt-1 text-sm font-semibold text-neutral-100">
-                {revenueEstimate > 0 ? `$${revenueEstimate.toFixed(2)}` : "—"}
+                {projectedRpmEstimate != null ? `$${projectedRpmEstimate.toFixed(2)}/mi` : "—"}
               </div>
             </div>
             <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
