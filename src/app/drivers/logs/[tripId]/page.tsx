@@ -9,14 +9,22 @@ import { buildTripCostingSnapshot } from "@/lib/serializers";
 import { formatDateTimeLabel } from "@/lib/formatters";
 import { getTripOperationalStatus } from "@/server/tripStatus";
 
+type DriverLogPageParams = { tripId: string };
+
+function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
+  return typeof (value as Promise<T>).then === "function";
+}
+
 export default async function DriverLogPage({
   params,
 }: {
-  params: { tripId: string };
+  params: DriverLogPageParams | Promise<DriverLogPageParams>;
 }) {
+  const resolvedParams = isPromise(params) ? await params : params;
+
   const [trip, operationalStatus] = await Promise.all([
     prisma.trip.findUnique({
-      where: { id: params.tripId },
+      where: { id: resolvedParams.tripId },
       include: {
         order: true,
         unitRef: true,
@@ -27,7 +35,7 @@ export default async function DriverLogPage({
         },
       },
     }),
-    getTripOperationalStatus(params.tripId),
+    getTripOperationalStatus(resolvedParams.tripId),
   ]);
 
   if (!trip) {

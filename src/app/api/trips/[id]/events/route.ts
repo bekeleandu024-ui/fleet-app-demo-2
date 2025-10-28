@@ -47,9 +47,10 @@ function sanitizeOdometer(value: unknown): number | null {
 
 export async function POST(
   request: Request,
-  context: any,
+  context: { params: Promise<{ id?: string } | undefined> },
 ) {
-  const tripId = context.params.id;
+  const params = context?.params ? await context.params : undefined;
+  const tripId = params?.id;
 
   if (!tripId) {
     return NextResponse.json({ success: false, error: "Trip ID required" }, { status: 400 });
