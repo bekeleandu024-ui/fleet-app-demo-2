@@ -25,15 +25,17 @@ async function updateDriver(id: string, formData: FormData) {
   redirect("/drivers");
 }
 
-export default async function EditDriverPage({ params }: { params: { id: string } }) {
-  const driver = await prisma.driver.findUnique({ where: { id: params.id } });
+export default async function EditDriverPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  const driver = await prisma.driver.findUnique({ where: { id } });
   if (!driver) {
     notFound();
   }
 
   async function action(formData: FormData) {
     "use server";
-    await updateDriver(params.id, formData);
+    await updateDriver(id, formData);
   }
 
   return (

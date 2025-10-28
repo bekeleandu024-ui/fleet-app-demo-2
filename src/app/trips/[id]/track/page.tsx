@@ -25,9 +25,11 @@ const draftDelayAction = async (tripId: string) => {
   return draftDelayNotification(tripId);
 };
 
-export default async function TrackTripPage({ params }: { params: { id: string } }) {
+export default async function TrackTripPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const trip = await prisma.trip.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       order: true,
       events: { orderBy: { at: "asc" }, include: { stop: true } },

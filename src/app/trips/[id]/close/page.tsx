@@ -20,9 +20,11 @@ const markClosedAction = async (formData: FormData) => {
   redirect(`/trips/${tripId}`);
 };
 
-export default async function CloseTripPage({ params }: { params: { id: string } }) {
+export default async function CloseTripPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const trip = await prisma.trip.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       order: true,
       events: true,

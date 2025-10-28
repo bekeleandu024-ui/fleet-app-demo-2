@@ -36,15 +36,17 @@ async function updateUnit(id: string, formData: FormData) {
   redirect("/units");
 }
 
-export default async function EditUnitPage({ params }: { params: { id: string } }) {
-  const unit = await prisma.unit.findUnique({ where: { id: params.id } });
+export default async function EditUnitPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  const unit = await prisma.unit.findUnique({ where: { id } });
   if (!unit) {
     notFound();
   }
 
   async function action(formData: FormData) {
     "use server";
-    await updateUnit(params.id, formData);
+    await updateUnit(id, formData);
   }
 
   return (

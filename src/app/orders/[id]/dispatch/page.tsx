@@ -82,9 +82,11 @@ const createTripAction = async (formData: FormData) => {
   redirect(`/trips/${result.tripId}/track`);
 };
 
-export default async function DispatchPage({ params }: { params: { id: string } }) {
+export default async function DispatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const order = await prisma.order.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       trips: { orderBy: { createdAt: "desc" }, take: 1 },
     },

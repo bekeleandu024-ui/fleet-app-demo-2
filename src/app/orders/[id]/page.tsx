@@ -25,9 +25,11 @@ function formatNumber(value: number | null | undefined, digits = 1) {
   return value.toFixed(digits);
 }
 
-export default async function PlanOrderPage({ params }: { params: { id: string } }) {
+export default async function PlanOrderPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   const order = await prisma.order.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       trips: true,
     },

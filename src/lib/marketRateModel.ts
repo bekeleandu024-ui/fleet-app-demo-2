@@ -327,6 +327,17 @@ const MARKET_DEFINITIONS = {
     inboundRejection: 0.57,
     costIndex: 0.39,
   },
+  ABQ: {
+    code: "ABQ",
+    name: "Albuquerque, NM",
+    country: "US",
+    region: "Mountain",
+    lat: 35.0844,
+    lon: -106.6504,
+    outboundTightness: 0.49,
+    inboundRejection: 0.45,
+    costIndex: 0.44,
+  },
 } as const satisfies Record<string, MarketDefinition>;
 
 const MARKET_ALIASES: Record<string, MarketCode> = {
@@ -361,6 +372,8 @@ const MARKET_ALIASES: Record<string, MarketCode> = {
   DFW: "DAL",
   HOUSTON: "HOU",
   IAH: "HOU",
+  ABQ: "ABQ",
+  ALBUQUERQUE: "ABQ",
   LOSANGELES: "LAX",
   LA: "LAX",
   LAX: "LAX",
@@ -381,6 +394,70 @@ const MARKET_ALIASES: Record<string, MarketCode> = {
   CINCY: "CVG",
   LAREDO: "LRD",
 };
+
+const STATE_ABBREVIATIONS = new Set([
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+  "DC",
+  "ON",
+  "QC",
+  "BC",
+  "AB",
+  "MB",
+  "NB",
+  "NS",
+  "PE",
+  "SK",
+  "NL",
+]);
 
 const LANE_OVERRIDES: Record<string, { rpm: number; source: string }> = {
   "GTA>CHI": { rpm: 2.21, source: "DAT RateView" },
@@ -418,6 +495,17 @@ export function normalizeMarketCode(input: string): MarketCode | null {
   }
 
   if (cleaned.length > 3) {
+    const maybeState = cleaned.slice(-2);
+    if (STATE_ABBREVIATIONS.has(maybeState)) {
+      const withoutState = cleaned.slice(0, -2);
+      if (withoutState in MARKET_DEFINITIONS) {
+        return withoutState as MarketCode;
+      }
+      if (withoutState in MARKET_ALIASES) {
+        return MARKET_ALIASES[withoutState];
+      }
+    }
+
     const start = cleaned.slice(0, 3);
     if (start in MARKET_DEFINITIONS) {
       return start as MarketCode;
