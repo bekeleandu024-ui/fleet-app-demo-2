@@ -218,10 +218,10 @@ export async function suggestPlanAndPrice(orderId: string): Promise<PlanSuggesti
       lastSuggestedDriverId: bestDriver?.driverId ?? null,
       lastSuggestedUnitId: bestUnit?.unitId ?? null,
       lastSuggestedRateId: candidateRate?.id ?? null,
-      lastSuggestedPlan: {
+      lastSuggestedPlan: JSON.stringify({
         rate: suggestedRate,
         guardrails,
-      },
+      }),
       lastSuggestionReason: summary.textSummary,
       lastSuggestedBy: "system",
       lastSuggestionAt: new Date(),
