@@ -352,53 +352,8 @@ export default async function BookPage({
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-sm font-semibold text-neutral-200">Trip Assignment &amp; Dispatch Overrides</div>
-                <p className="text-xs text-neutral-400">
-                  Align drivers, equipment, economics, and routing commitments before launching the trip.
-                </p>
-              </div>
-              {selectedOrder && (
-                <span className="rounded-full border border-emerald-500/50 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
-                  Active Load
-                </span>
-              )}
-            </div>
-            <div className="mt-5">
-              {selectedOrder ? (
-                <BookTripButton
-                  orderId={selectedOrder.id}
-                  driverId={defaultDriverId}
-                  unitId={defaultUnitId}
-                  rateId={defaultRateId}
-                  drivers={safeDrivers}
-                  units={safeUnits}
-                  rates={safeRates}
-                  driverName={defaultDriverName}
-                  unitCode={defaultUnitCode}
-                  tripType={defaultTripType ?? null}
-                  tripZone={defaultTripZone ?? null}
-                  miles={defaultMiles}
-                  rpmQuoted={defaultRpmQuoted}
-                  totalCpm={defaultTotalCpm}
-                  notes={bookingNotes}
-                  highlights={bookingHighlights}
-                  orderOrigin={selectedOrder.origin}
-                  orderDestination={selectedOrder.destination}
-                  customerName={selectedOrder.customer}
-                />
-              ) : (
-                <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
-                  Select an order from the sidebar to configure the trip assignment and dispatch overrides.
-                </div>
-              )}
-            </div>
-          </div>
-
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.7fr)_minmax(0,1.1fr)] 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.9fr)_minmax(0,1.1fr)]">
+        <div className="space-y-6 order-1 xl:order-2">
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
             <div className="flex items-center justify-between">
               <div>
@@ -457,6 +412,53 @@ export default async function BookPage({
             )}
           </div>
 
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-neutral-200">Trip Assignment &amp; Dispatch Overrides</div>
+                <p className="text-xs text-neutral-400">
+                  Align drivers, equipment, economics, and routing commitments before launching the trip.
+                </p>
+              </div>
+              {selectedOrder && (
+                <span className="rounded-full border border-emerald-500/50 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+                  Active Load
+                </span>
+              )}
+            </div>
+            <div className="mt-5">
+              {selectedOrder ? (
+                <BookTripButton
+                  orderId={selectedOrder.id}
+                  driverId={defaultDriverId}
+                  unitId={defaultUnitId}
+                  rateId={defaultRateId}
+                  drivers={safeDrivers}
+                  units={safeUnits}
+                  rates={safeRates}
+                  driverName={defaultDriverName}
+                  unitCode={defaultUnitCode}
+                  tripType={defaultTripType ?? null}
+                  tripZone={defaultTripZone ?? null}
+                  miles={defaultMiles}
+                  rpmQuoted={defaultRpmQuoted}
+                  totalCpm={defaultTotalCpm}
+                  notes={bookingNotes}
+                  highlights={bookingHighlights}
+                  orderOrigin={selectedOrder.origin}
+                  orderDestination={selectedOrder.destination}
+                  customerName={selectedOrder.customer}
+                />
+              ) : (
+                <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
+                  Select an order from the sidebar to configure the trip assignment and dispatch overrides.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6 order-3 xl:order-1">
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
             <div className="flex items-center justify-between">
               <div>
@@ -550,7 +552,7 @@ export default async function BookPage({
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 order-2 xl:order-3">
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
             <div className="text-sm font-semibold text-neutral-200">Qualified Orders</div>
             <ul className="mt-4 space-y-3">
