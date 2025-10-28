@@ -1,14 +1,21 @@
 /*
- * Leaflet dark theme overrides for the Intellifleet driver log map.
- * These styles keep the controls and popups cohesive with the rest of the
- * application while still leaning on Leaflet's default class names.
+ * Dark theme overrides for mapping experiences in the Intellifleet demo.
+ * The styles below target both the legacy Leaflet maps and the MapLibre
+ * implementation used on the live fleet page.
  */
 
-.leaflet-container {
+.leaflet-container,
+.fleet-maplibre-container {
   background: radial-gradient(circle at top, rgba(30, 41, 59, 0.65), rgba(2, 6, 23, 0.95)),
     radial-gradient(circle at bottom, rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.95)) !important;
   color: #e2e8f0;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.fleet-maplibre-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .leaflet-control-container .leaflet-control-zoom,
@@ -68,4 +75,69 @@
 
 .leaflet-container a:hover {
   color: #7dd3fc;
+}
+
+/* MapLibre overrides */
+
+.maplibregl-map {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.maplibregl-ctrl,
+.maplibregl-ctrl-group {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background-color: rgba(15, 23, 42, 0.88);
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.45);
+  color: #f8fafc;
+}
+
+.maplibregl-ctrl button {
+  color: inherit;
+}
+
+.maplibregl-ctrl button:hover {
+  background-color: rgba(30, 41, 59, 0.95);
+  color: #d1fae5;
+}
+
+.maplibregl-popup-content {
+  background: rgba(15, 23, 42, 0.92);
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.55);
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.maplibregl-popup-close-button {
+  color: rgba(226, 232, 240, 0.6);
+}
+
+.maplibregl-popup-tip {
+  border-top-color: rgba(15, 23, 42, 0.92) !important;
+}
+
+.maplibregl-ctrl-scale {
+  color: rgba(226, 232, 240, 0.85);
+  border-color: rgba(148, 163, 184, 0.35);
+  background-color: rgba(15, 23, 42, 0.88);
+}
+
+.fleet-map-marker {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1)),
+    var(--marker-color);
+  box-shadow: 0 10px 26px rgba(15, 118, 110, 0.45), 0 0 16px var(--marker-color);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fleet-map-marker:hover,
+.fleet-map-marker:focus-visible {
+  transform: scale(1.1);
+  box-shadow: 0 16px 32px rgba(16, 185, 129, 0.45), 0 0 18px var(--marker-color);
 }
