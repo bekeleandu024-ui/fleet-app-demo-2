@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { fetchSpotRate } from "@/lib/marketRates";
+import { getRouteEstimate } from "@/src/server/integrations/routing";
 
 export type TripForOrder = {
   id: string;
@@ -40,16 +42,17 @@ export type UnitStatus = {
 };
 
 export type RoutingEstimate = {
-  miles: number;
-  etaHours: number;
-  trafficDelayMin: number;
-  borderDelayMin: number;
+  miles: number | null;
+  etaHours: number | null;
+  trafficDelayMin: number | null;
+  borderDelayMin: number | null;
+  crossesBorder: boolean;
 };
 
 export type MarketRate = {
   quotedRPM: number | null;
-  marketRPM: number;
-  source: string;
+  marketRPM: number | null;
+  source: string | null;
 };
 
 export type MarginProjection = {
@@ -188,23 +191,28 @@ export async function getRoutingEstimate(
   destination: string,
   existingMiles?: number | null,
 ): Promise<RoutingEstimate> {
-  const miles = existingMiles && existingMiles > 0 ? existingMiles : 350; // TODO: replace with live routing distance
-  const etaHours = miles / 60;
+  try {
+    const route = await getRouteEstimate(origin, destination);
+    return {
+      miles: route.miles,
+      etaHours: route.etaMinutes / 60,
+      trafficDelayMin: route.trafficDelayMinutes,
+      borderDelayMin: route.crossesBorder ? null : 0,
+      crossesBorder: route.crossesBorder,
+    };
+  } catch (error) {
+    console.error("Failed to compute routing estimate", error);
 
-  return {
-    miles,
-    etaHours,
-    trafficDelayMin: 22, // TODO: plug in live traffic delta
-    borderDelayMin: origin.includes("ON") || destination.includes("ON") ? 14 : 0, // TODO: replace with border wait API
-  };
-}
+    const miles = existingMiles && existingMiles > 0 ? existingMiles : null;
 
-async function fetchSpotRate(origin: string, destination: string): Promise<{ rpm: number; source: string }> {
-  // TODO: replace with integration to DAT / Truckstop spot rate services
-  return {
-    rpm: 2.85,
-    source: "MockSpotRate",
-  };
+    return {
+      miles,
+      etaHours: null,
+      trafficDelayMin: null,
+      borderDelayMin: null,
+      crossesBorder: false,
+    };
+  }
 }
 
 export async function getMarketRate(
@@ -212,15 +220,23 @@ export async function getMarketRate(
   destination: string,
   trip?: TripForOrder | null,
 ): Promise<MarketRate> {
-  const spot = await fetchSpotRate(origin, destination);
-
   const quotedRPM = trip?.revenue && trip?.miles && trip.miles > 0 ? trip.revenue / trip.miles : null;
 
-  return {
-    quotedRPM,
-    marketRPM: spot.rpm,
-    source: spot.source,
-  };
+  try {
+    const spot = await fetchSpotRate(origin, destination);
+    return {
+      quotedRPM,
+      marketRPM: spot.rpm,
+      source: spot.source,
+    };
+  } catch (error) {
+    console.error("Failed to fetch market rate", error);
+    return {
+      quotedRPM,
+      marketRPM: trip?.marketRPM ?? null,
+      source: trip?.marketRPM ? "Internal historical rate" : null,
+    };
+  }
 }
 
 export function computeMargin(trip?: TripForOrder | null): MarginProjection {
@@ -260,8 +276,17 @@ export function buildWhyThisAssignment(
     `Unit ${unitStatus.unitId} ${unitStatus.classSpec}` +
       (unitStatus.lastKnownLocation?.city ? ` near ${unitStatus.lastKnownLocation.city}` : ""),
   );
-  lines.push(`${Math.round(routingEstimate.miles)} mi lane, ETA ${routingEstimate.etaHours.toFixed(1)} h`);
-  lines.push(`Market RPM ${marketRate.marketRPM.toFixed(2)}`);
+  const milesLine =
+    routingEstimate.miles !== null
+      ? `${Math.round(routingEstimate.miles)} mi lane`
+      : "Lane distance unavailable";
+  const etaLine =
+    routingEstimate.etaHours !== null ? `ETA ${routingEstimate.etaHours.toFixed(1)} h` : "ETA unavailable";
+  lines.push(`${milesLine}${routingEstimate.etaHours !== null ? `, ${etaLine}` : ""}`.trim());
+
+  if (marketRate.marketRPM !== null) {
+    lines.push(`Market RPM ${marketRate.marketRPM.toFixed(2)}`);
+  }
 
   return lines;
 }

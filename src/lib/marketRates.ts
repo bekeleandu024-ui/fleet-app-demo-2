@@ -15,6 +15,25 @@ export async function fetchSpotRate(
     throw new Error("No rate available for that lane");
   }
 
+  const lane = await prisma.marketLane
+    .findFirst({
+      where: {
+        origin: normalizedOrigin,
+        destination: normalizedDestination,
+      },
+      orderBy: { updatedAt: "desc" },
+    })
+    .catch((error) => {
+      if (error instanceof PrismaClientKnownRequestError && error.code === "P2021") {
+        return null;
+      }
+      throw error;
+    });
+
+  if (lane) {
+    return { rpm: lane.rpm, source: lane.source };
+  }
+
   const { rpm, source } = estimateLaneRpm(normalizedOrigin, normalizedDestination);
 
   return { rpm, source };
