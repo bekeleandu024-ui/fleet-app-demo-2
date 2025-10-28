@@ -81,7 +81,7 @@ const formatWindow = (start: Date | null, end: Date | null): string => {
   return "Flexible";
 };
 
-const baseCardClass = "rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40";
+const baseCardClass = "rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40";
 
 const OrderSnapshotCard = ({
   selectedOrder,
@@ -107,37 +107,40 @@ const OrderSnapshotCard = ({
       </div>
 
       {selectedOrder ? (
-        <div className="mt-4 grid gap-3 lg:grid-cols-3 lg:gap-4">
-          <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Customer</h3>
-            <p className="mt-1 text-sm font-medium text-neutral-100">{selectedOrder.customer}</p>
-            <p className="text-xs text-neutral-400">
-              {selectedOrder.origin} → {selectedOrder.destination}
-            </p>
-          </div>
-          <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Pickup Window</h3>
-            <p className="mt-1 text-sm text-neutral-200">
-              {formatWindow(selectedOrder.puWindowStart, selectedOrder.puWindowEnd)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Delivery Window</h3>
-            <p className="mt-1 text-sm text-neutral-200">
-              {formatWindow(selectedOrder.delWindowStart, selectedOrder.delWindowEnd)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-3 lg:col-span-2">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Dispatcher Notes</h3>
-            <p className="mt-1 text-xs leading-relaxed text-neutral-400">
-              {selectedOrder.notes ?? "No special handling requirements recorded."}
-            </p>
-          </div>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Trip Context</div>
-            <p className="mt-2 text-xs text-neutral-300">
-              Validate guardrails before booking. AI recommendations factor live rates, driver scorecards, and dwell risk.
-            </p>
+        <div className="mt-4 rounded-lg border border-neutral-800/80 bg-neutral-950/40 px-4 py-3">
+          <div className="flex flex-col gap-4 text-xs text-neutral-300 lg:flex-row lg:items-start lg:gap-0 lg:divide-x lg:divide-neutral-800/70 lg:[&>*:not(:first-child)]:pl-4">
+            <div className="flex min-w-[14rem] flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Customer</span>
+              <span className="text-sm font-semibold text-neutral-100">{selectedOrder.customer}</span>
+              <span className="text-[11px] text-neutral-500">
+                {selectedOrder.origin} → {selectedOrder.destination}
+              </span>
+            </div>
+            <div className="flex min-w-[11rem] flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Pickup Window</span>
+              <span className="text-sm font-medium text-neutral-100">
+                {formatWindow(selectedOrder.puWindowStart, selectedOrder.puWindowEnd)}
+              </span>
+            </div>
+            <div className="flex min-w-[11rem] flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Delivery Window</span>
+              <span className="text-sm font-medium text-neutral-100">
+                {formatWindow(selectedOrder.delWindowStart, selectedOrder.delWindowEnd)}
+              </span>
+            </div>
+            <div className="flex min-w-[16rem] flex-1 flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Dispatcher Notes</span>
+              <span className="text-[11px] leading-relaxed text-neutral-400">
+                {selectedOrder.notes ?? "No special handling requirements recorded."}
+              </span>
+            </div>
+            <div className="flex min-w-[14rem] flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Trip Context</span>
+              <span className="text-[11px] text-neutral-400">
+                Validate guardrails before booking. AI recommendations factor live rates, driver scorecards, and dwell
+                risk.
+              </span>
+            </div>
           </div>
         </div>
       ) : (
