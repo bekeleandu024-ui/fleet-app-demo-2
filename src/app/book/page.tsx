@@ -81,6 +81,78 @@ const formatWindow = (start: Date | null, end: Date | null): string => {
   return "Flexible";
 };
 
+const baseCardClass = "rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40";
+
+const OrderSnapshotCard = ({
+  selectedOrder,
+  className,
+}: {
+  selectedOrder: SafeOrder | null;
+  className?: string;
+}) => {
+  const classes = [baseCardClass, className].filter(Boolean).join(" ");
+
+  return (
+    <div className={classes}>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm font-semibold text-neutral-200">Order Snapshot</div>
+          <p className="text-xs text-neutral-400">Key load requirements before assigning resources.</p>
+        </div>
+        {selectedOrder && (
+          <span className="rounded-full border border-neutral-700 bg-neutral-800/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-300">
+            {selectedOrder.requiredTruck ?? "Standard"}
+          </span>
+        )}
+      </div>
+
+      {selectedOrder ? (
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Customer</h3>
+              <p className="mt-1 text-sm font-medium text-neutral-100">{selectedOrder.customer}</p>
+              <p className="text-xs text-neutral-400">
+                {selectedOrder.origin} → {selectedOrder.destination}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Pickup Window</h3>
+              <p className="mt-1 text-sm text-neutral-200">
+                {formatWindow(selectedOrder.puWindowStart, selectedOrder.puWindowEnd)}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Delivery Window</h3>
+              <p className="mt-1 text-sm text-neutral-200">
+                {formatWindow(selectedOrder.delWindowStart, selectedOrder.delWindowEnd)}
+              </p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Dispatcher Notes</h3>
+              <p className="mt-1 text-xs leading-relaxed text-neutral-400">
+                {selectedOrder.notes ?? "No special handling requirements recorded."}
+              </p>
+            </div>
+            <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Trip Context</div>
+              <p className="mt-2 text-xs text-neutral-300">
+                Validate guardrails before booking. AI recommendations factor live rates, driver scorecards, and dwell risk.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-6 rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
+          Select an order from the sidebar to review critical load information.
+        </div>
+      )}
+    </div>
+  );
+};
+
 const marginClass = (value: number): string => {
   if (value >= 0.15) {
     return "text-emerald-400";
@@ -215,22 +287,6 @@ export default async function BookPage({
     ? safeRates.find((rate) => rate.id === suggestion.selectedRateId) ?? safeRates[0] ?? null
     : null;
 
-  const ordersReadyCount = safeOrders.length;
-  const driversWithHoursCount = safeDrivers.filter(
-    (driver) => (driver.hoursAvailableToday ?? 0) >= 6,
-  ).length;
-  const stagedUnitsCount = safeUnits.filter((unit) => {
-    if (!unit.status) {
-      return true;
-    }
-
-    const status = unit.status.toLowerCase();
-
-    return ["available", "idle", "ready", "staged"].some((keyword) =>
-      status.includes(keyword),
-    );
-  }).length;
-
   const driverShortlist = suggestion
     ? [
         {
@@ -334,84 +390,10 @@ export default async function BookPage({
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Qualified Orders Ready</div>
-          <div className="mt-2 text-2xl font-semibold text-emerald-400">{ordersReadyCount}</div>
-          <p className="mt-1 text-xs text-neutral-400">Loads cleared for booking and waiting for assignment.</p>
-        </div>
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Drivers With 6+ Hours</div>
-          <div className="mt-2 text-2xl font-semibold text-sky-400">{driversWithHoursCount}</div>
-          <p className="mt-1 text-xs text-neutral-400">Hours-of-service verified and ready to roll.</p>
-        </div>
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Units Staged</div>
-          <div className="mt-2 text-2xl font-semibold text-amber-400">{stagedUnitsCount}</div>
-          <p className="mt-1 text-xs text-neutral-400">Tractors and trailers cleared for dispatch today.</p>
-        </div>
-      </div>
+      <OrderSnapshotCard selectedOrder={selectedOrder} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.7fr)_minmax(0,1.1fr)] 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.9fr)_minmax(0,1.1fr)]">
         <div className="space-y-6 order-1 xl:order-2">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-neutral-200">Order Snapshot</div>
-                <p className="text-xs text-neutral-400">Key load requirements before assigning resources.</p>
-              </div>
-              {selectedOrder && (
-                <span className="rounded-full border border-neutral-700 bg-neutral-800/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-300">
-                  {selectedOrder.requiredTruck ?? "Standard"}
-                </span>
-              )}
-            </div>
-
-            {selectedOrder ? (
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Customer</h3>
-                    <p className="mt-1 text-sm font-medium text-neutral-100">{selectedOrder.customer}</p>
-                    <p className="text-xs text-neutral-400">
-                      {selectedOrder.origin} → {selectedOrder.destination}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Pickup Window</h3>
-                    <p className="mt-1 text-sm text-neutral-200">
-                      {formatWindow(selectedOrder.puWindowStart, selectedOrder.puWindowEnd)}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Delivery Window</h3>
-                    <p className="mt-1 text-sm text-neutral-200">
-                      {formatWindow(selectedOrder.delWindowStart, selectedOrder.delWindowEnd)}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Dispatcher Notes</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-neutral-400">
-                      {selectedOrder.notes ?? "No special handling requirements recorded."}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Trip Context</div>
-                    <p className="mt-2 text-xs text-neutral-300">
-                      Validate guardrails before booking. AI recommendations factor live rates, driver scorecards, and dwell risk.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-6 rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
-                Select an order from the sidebar to review critical load information.
-              </div>
-            )}
-          </div>
-
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
