@@ -2,19 +2,25 @@ import Link from "next/link";
 
 import prisma from "@/lib/prisma";
 
+import DashboardCard from "@/src/components/DashboardCard";
+
+const pillBaseClass = "inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-medium text-white";
+
 function pctColor(pctNum: number | null | undefined) {
-  if (pctNum == null || isNaN(pctNum)) return "text-neutral-400";
-  if (pctNum >= 0.12) return "text-emerald-400";
-  if (pctNum >= 0.08) return "text-yellow-300";
-  return "text-red-400";
+  if (pctNum == null || isNaN(pctNum)) return "text-white/60";
+  if (pctNum >= 0.12) return "text-emerald-300";
+  if (pctNum >= 0.08) return "text-yellow-200";
+  return "text-rose-300";
 }
 
 function riskColor(riskNum: number | null | undefined) {
-  if (riskNum == null || isNaN(riskNum)) return "text-neutral-400";
-  if (riskNum >= 0.3) return "text-red-400";
-  if (riskNum >= 0.15) return "text-yellow-300";
-  return "text-emerald-400";
+  if (riskNum == null || isNaN(riskNum)) return "text-white/60";
+  if (riskNum >= 0.3) return "text-rose-300";
+  if (riskNum >= 0.15) return "text-yellow-200";
+  return "text-emerald-300";
 }
+
+type VerdictTone = "ok" | "caution" | "danger";
 
 // Classify AI verdict for the trip
 function classifyVerdict(
@@ -29,8 +35,7 @@ function classifyVerdict(
   if (lowMarginHard || highDelayHard || noStatus) {
     return {
       label: "Needs Intervention",
-      toneClass:
-        "bg-red-600/20 border border-red-600/40 text-red-300 shadow-[0_0_20px_rgba(220,38,38,0.2)]",
+      tone: "danger" as VerdictTone,
     } as const;
   }
 
@@ -40,15 +45,13 @@ function classifyVerdict(
   if (lowMarginSoft || highDelaySoft) {
     return {
       label: "Caution",
-      toneClass:
-        "bg-yellow-500/20 border border-yellow-500/40 text-yellow-200 shadow-[0_0_20px_rgba(250,204,21,0.15)]",
+      tone: "caution" as VerdictTone,
     } as const;
   }
 
   return {
     label: "OK",
-    toneClass:
-      "bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.15)]",
+    tone: "ok" as VerdictTone,
   } as const;
 }
 
@@ -114,6 +117,12 @@ function buildReasons({
   return reasons;
 }
 
+const verdictToneDot: Record<VerdictTone, string> = {
+  ok: "bg-emerald-400",
+  caution: "bg-yellow-300",
+  danger: "bg-rose-400",
+};
+
 export default async function TripsPage() {
   const tripsRaw = await prisma.trip.findMany({
     include: {
@@ -164,166 +173,143 @@ export default async function TripsPage() {
   const cautionCount = activeTrips.filter((t) => t.verdict.label === "Caution").length;
 
   return (
-    <main className="min-h-screen bg-[#0a0f1c] text-neutral-100 px-6 py-10">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <header className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">Trips</h1>
-          <p className="text-sm text-neutral-400">
-            Live dispatch health, AI-style risk assessment, and profit watch.
-          </p>
-        </header>
-
-        {/* KPI Row */}
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <div className="text-[11px] text-neutral-400">Active Trips (not Completed)</div>
-            <div className="text-2xl font-semibold text-neutral-100">{activeTrips.length}</div>
-            <div className="text-[10px] text-neutral-500">
-              Monitoring status, timing, and margin drift.
-            </div>
+    <div className="flex flex-col gap-6">
+      <DashboardCard
+        title="Trips"
+        description="Live dispatch health, AI-style risk assessment, and profit watch."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="text-[11px] uppercase tracking-wide text-white/50">Active Trips</div>
+            <div className="mt-2 text-2xl font-semibold text-white">{activeTrips.length}</div>
+            <div className="text-[11px] text-white/60">Monitoring status, timing, and margin drift.</div>
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <div className="text-[11px] text-neutral-400">Needs Intervention</div>
-            <div className="text-2xl font-semibold text-red-400">{needsInterventionCount}</div>
-            <div className="text-[10px] text-neutral-500">
-              Margin &lt;5%, delay risk &gt;30%, or missing dispatch status.
-            </div>
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="text-[11px] uppercase tracking-wide text-white/50">Needs Intervention</div>
+            <div className="mt-2 text-2xl font-semibold text-white">{needsInterventionCount}</div>
+            <div className="text-[11px] text-white/60">Margin &lt;5%, delay risk &gt;30%, or missing dispatch status.</div>
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <div className="text-[11px] text-neutral-400">Caution</div>
-            <div className="text-2xl font-semibold text-yellow-300">{cautionCount}</div>
-            <div className="text-[10px] text-neutral-500">
-              Thin margin (&lt;8%) or ETA slippage risk.
-            </div>
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="text-[11px] uppercase tracking-wide text-white/50">Caution</div>
+            <div className="mt-2 text-2xl font-semibold text-white">{cautionCount}</div>
+            <div className="text-[11px] text-white/60">Thin margin (&lt;8%) or ETA slippage risk.</div>
           </div>
-        </section>
+        </div>
+      </DashboardCard>
 
-        {/* Trips Table */}
-        <section className="rounded-xl border border-neutral-800 bg-neutral-900/60 shadow-lg shadow-black/40 overflow-hidden">
-          <div className="border-b border-neutral-800 p-5 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-neutral-200">Recent / Active Trips</div>
-              <div className="mt-1 text-xs text-neutral-400">
-                AI verdict explains why a trip is risky (late, unprofitable, incomplete).
-              </div>
-            </div>
-            <div className="text-[10px] text-neutral-500 font-mono">showing {trips.length} latest</div>
-          </div>
+      <DashboardCard
+        title="Recent / Active Trips"
+        description="AI verdict explains why a trip is risky (late, unprofitable, incomplete)."
+        headerRight={<span className="text-[10px] font-mono text-white/60">showing {trips.length} latest</span>}
+      >
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-[11px] text-white/80">
+            <thead className="bg-white/5 text-white/60">
+              <tr>
+                <th className="py-2 pr-4 font-normal uppercase tracking-wide">Trip</th>
+                <th className="py-2 pr-4 font-normal uppercase tracking-wide">Driver / Unit</th>
+                <th className="py-2 pr-4 font-normal uppercase tracking-wide">Lane</th>
+                <th className="py-2 pr-4 font-normal uppercase tracking-wide">Miles / RPM</th>
+                <th className="py-2 pr-4 font-normal uppercase tracking-wide">Margin</th>
+                <th className="py-2 pr-4 font-normal uppercase tracking-wide">Delay Risk</th>
+                <th className="py-2 pr-4 font-normal uppercase tracking-wide">AI Verdict</th>
+                <th className="py-2 pr-4 font-normal uppercase tracking-wide">Notes</th>
+              </tr>
+            </thead>
 
-          <div className="p-5 overflow-x-auto">
-            <table className="min-w-full text-left text-[11px] text-neutral-300">
-              <thead className="text-neutral-500">
-                <tr>
-                  <th className="py-2 pr-4 font-normal uppercase tracking-wide">Trip</th>
-                  <th className="py-2 pr-4 font-normal uppercase tracking-wide">Driver / Unit</th>
-                  <th className="py-2 pr-4 font-normal uppercase tracking-wide">Lane</th>
-                  <th className="py-2 pr-4 font-normal uppercase tracking-wide">Miles / RPM</th>
-                  <th className="py-2 pr-4 font-normal uppercase tracking-wide">Margin</th>
-                  <th className="py-2 pr-4 font-normal uppercase tracking-wide">Delay Risk</th>
-                  <th className="py-2 pr-4 font-normal uppercase tracking-wide">AI Verdict</th>
-                  <th className="py-2 pr-4 font-normal uppercase tracking-wide">Notes</th>
+            <tbody className="divide-y divide-white/5">
+              {trips.map((t) => (
+                <tr key={t.id} className="align-top transition hover:bg-white/5">
+                  {/* Trip ID + status */}
+                  <td className="py-3 pr-4">
+                    <div className="font-semibold text-white">{t.id.slice(0, 8).toUpperCase()}</div>
+                    <div className="text-[10px] text-white/60">{t.status}</div>
+                    <div className="text-[10px] text-white/60">
+                      {t.createdAt.toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                    <Link
+                      href={`/drivers/logs/${t.id}`}
+                      className="mt-1 inline-block text-[10px] text-emerald-200 underline-offset-4 transition hover:text-emerald-100"
+                    >
+                      Driver Log
+                    </Link>
+                  </td>
+
+                  {/* Driver / Unit */}
+                  <td className="py-3 pr-4">
+                    <div className="font-medium text-white">{t.driver || "—"}</div>
+                    <div className="text-[10px] text-white/60">{t.unit || "—"}</div>
+                  </td>
+
+                  {/* Lane */}
+                  <td className="py-3 pr-4">
+                    <div className="text-white">
+                      {t.origin || "—"} <span className="text-white/40">→</span> {t.destination || "—"}
+                    </div>
+                    <div className="text-[10px] text-white/60">{t.miles} mi</div>
+                  </td>
+
+                  {/* Miles / RPM */}
+                  <td className="py-3 pr-4">
+                    <div className="text-white">{t.miles} mi</div>
+                    <div className="text-[10px] text-white/60">
+                      {t.rpm != null ? `${t.rpm.toFixed(2)} $/mi` : "—"}
+                    </div>
+                  </td>
+
+                  {/* Margin */}
+                  <td className="py-3 pr-4">
+                    <div className={`font-semibold ${pctColor(t.marginPct)} text-[12px]`}>
+                      {(t.marginPct * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-[10px] text-white/50">Gross margin</div>
+                  </td>
+
+                  {/* Delay Risk */}
+                  <td className="py-3 pr-4">
+                    <div className={`font-semibold ${riskColor(t.delayRiskPct)} text-[12px]`}>
+                      {(t.delayRiskPct * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-[10px] text-white/50">Late risk</div>
+                  </td>
+
+                  {/* Verdict */}
+                  <td className="py-3 pr-4">
+                    <span className={pillBaseClass}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${verdictToneDot[t.verdict.tone]}`} aria-hidden />
+                      {t.verdict.label}
+                    </span>
+                  </td>
+
+                  {/* Notes / Reasons */}
+                  <td className="w-[220px] max-w-[220px] py-3 pr-4">
+                    <ul className="list-disc space-y-1 pl-4 text-[10px] leading-relaxed text-white/60">
+                      {t.reasons.map((line, idx) => (
+                        <li key={idx}>{line}</li>
+                      ))}
+                    </ul>
+                  </td>
                 </tr>
-              </thead>
+              ))}
 
-              <tbody className="text-neutral-200">
-                {trips.map((t) => (
-                  <tr
-                    key={t.id}
-                    className="border-t border-neutral-800/80 hover:bg-neutral-800/30 align-top"
-                  >
-                    {/* Trip ID + status */}
-                    <td className="py-2 pr-4">
-                      <div className="font-semibold text-neutral-100">{t.id.slice(0, 8).toUpperCase()}</div>
-                      <div className="text-[10px] text-neutral-500">{t.status}</div>
-                      <div className="text-[10px] text-neutral-500">
-                        {t.createdAt.toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                      <Link
-                        href={`/drivers/logs/${t.id}`}
-                        className="mt-1 inline-block text-[10px] text-blue-300 hover:text-blue-200"
-                      >
-                        Driver Log
-                      </Link>
-                    </td>
-
-                    {/* Driver / Unit */}
-                    <td className="py-2 pr-4">
-                      <div className="text-neutral-200 font-medium">{t.driver || "—"}</div>
-                      <div className="text-[10px] text-neutral-400">{t.unit || "—"}</div>
-                    </td>
-
-                    {/* Lane */}
-                    <td className="py-2 pr-4">
-                      <div className="text-neutral-200">
-                        {t.origin || "—"} <span className="text-neutral-500">→</span> {t.destination || "—"}
-                      </div>
-                      <div className="text-[10px] text-neutral-500">{t.miles} mi</div>
-                    </td>
-
-                    {/* Miles / RPM */}
-                    <td className="py-2 pr-4">
-                      <div className="text-neutral-200">{t.miles} mi</div>
-                      <div className="text-[10px] text-neutral-500">
-                        {t.rpm != null ? `${t.rpm.toFixed(2)} $/mi` : "—"}
-                      </div>
-                    </td>
-
-                    {/* Margin */}
-                    <td className="py-2 pr-4">
-                      <div className={`font-semibold ${pctColor(t.marginPct)} text-[12px]`}>
-                        {(t.marginPct * 100).toFixed(1)}%
-                      </div>
-                      <div className="text-[10px] text-neutral-500">Gross margin</div>
-                    </td>
-
-                    {/* Delay Risk */}
-                    <td className="py-2 pr-4">
-                      <div className={`font-semibold ${riskColor(t.delayRiskPct)} text-[12px]`}>
-                        {(t.delayRiskPct * 100).toFixed(1)}%
-                      </div>
-                      <div className="text-[10px] text-neutral-500">Late risk</div>
-                    </td>
-
-                    {/* Verdict */}
-                    <td className="py-2 pr-4">
-                      <span
-                        className={`inline-block rounded-md px-2 py-1 text-[10px] font-semibold whitespace-nowrap ${t.verdict.toneClass}`}
-                      >
-                        {t.verdict.label}
-                      </span>
-                    </td>
-
-                    {/* Notes / Reasons */}
-                    <td className="py-2 pr-4 w-[220px] max-w-[220px]">
-                      <ul className="text-[10px] text-neutral-400 leading-relaxed list-disc pl-4 space-y-1">
-                        {t.reasons.map((line, idx) => (
-                          <li key={idx}>{line}</li>
-                        ))}
-                      </ul>
-                    </td>
-                  </tr>
-                ))}
-
-                {trips.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-6 text-center text-[11px] text-neutral-500">
-                      No trips have been booked yet.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-    </main>
+              {trips.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-6 text-center text-[11px] text-white/60">
+                    No trips have been booked yet.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </DashboardCard>
+    </div>
   );
 }

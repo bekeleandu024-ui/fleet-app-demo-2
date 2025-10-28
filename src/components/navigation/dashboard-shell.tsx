@@ -35,17 +35,13 @@ export default function DashboardShell({ sections, children }: DashboardShellPro
   }, []);
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-0 lg:px-8">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-6 py-8 lg:flex-row lg:gap-8">
       <CollapsibleNavPanel
         sections={sections}
         collapsed={collapsed}
         onToggle={() => setCollapsed((prev) => !prev)}
       />
-      <main
-        className={`flex-1 transition-[margin] duration-300 ease-out ${
-          collapsed ? "lg:ml-0" : "lg:ml-8"
-        }`}
-      >
+      <main className={`flex-1 pb-10 transition-[margin] duration-300 ease-out ${collapsed ? "lg:ml-0" : "lg:ml-6"}`}>
         {children}
       </main>
     </div>

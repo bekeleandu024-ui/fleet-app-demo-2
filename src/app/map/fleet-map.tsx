@@ -104,7 +104,7 @@ export function FleetMap({
   );
 
   return (
-    <div className={`relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/70 shadow-lg shadow-black/40 ${heightClassName}`}>
+    <div className={`relative w-full overflow-hidden rounded-xl border border-white/10 bg-[#0f1729] shadow-[0_30px_120px_rgba(0,0,0,0.8)] ${heightClassName}`}>
       <MapContainer
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
@@ -134,10 +134,10 @@ export function FleetMap({
               }}
             >
               <Tooltip direction="top" offset={[0, -8]} opacity={1}>
-                <div className="space-y-1 text-[0.7rem] text-slate-200">
+                <div className="space-y-1 text-[0.7rem] text-white/80">
                   <p className="text-xs font-semibold text-white">{unit.driverName || "Unassigned"}</p>
-                  <p className="text-[0.65rem] uppercase tracking-wide text-slate-400">Unit {unit.code}</p>
-                  <div className="flex items-center gap-2 text-[0.65rem] text-slate-300">
+                  <p className="text-[0.65rem] uppercase tracking-wide text-white/60">Unit {unit.code}</p>
+                  <div className="flex items-center gap-2 text-[0.65rem] text-white/70">
                     <span
                       className="inline-flex h-2 w-2 rounded-full"
                       style={{
@@ -148,12 +148,12 @@ export function FleetMap({
                     />
                     <span>{token.label}</span>
                   </div>
-                  <p className="text-[0.65rem] text-slate-400">Ping: {coordsLabel}</p>
+                  <p className="text-[0.65rem] text-white/60">Ping: {coordsLabel}</p>
                   {unit.lastPingLabel ? (
-                    <p className="text-[0.6rem] text-slate-500">Last ping {unit.lastPingLabel}</p>
+                    <p className="text-[0.6rem] text-white/50">Last ping {unit.lastPingLabel}</p>
                   ) : null}
                   {unit.statusDetail ? (
-                    <p className="text-[0.6rem] text-slate-500">Status: {unit.statusDetail}</p>
+                    <p className="text-[0.6rem] text-white/50">Status: {unit.statusDetail}</p>
                   ) : null}
                 </div>
               </Tooltip>
@@ -164,16 +164,16 @@ export function FleetMap({
 
       {laneCallout ? (
         <div className="pointer-events-none absolute left-6 top-6 z-[401]">
-          <div className="pointer-events-auto rounded-lg border border-neutral-800/80 bg-black/70 px-3 py-2 text-xs text-neutral-300 shadow-lg shadow-black/50 backdrop-blur">
+          <div className="pointer-events-auto rounded-lg border border-white/15 bg-[#0f1729]/90 px-3 py-2 text-xs text-white/70 shadow-lg shadow-black/50 backdrop-blur">
             <p className="text-sm font-semibold text-white">{laneCallout.title}</p>
-            <p className="text-[0.7rem] text-neutral-400">{laneCallout.subtitle}</p>
-            <p className="text-[0.6rem] text-neutral-500">{laneCallout.meta}</p>
+            <p className="text-[0.7rem] text-white/60">{laneCallout.subtitle}</p>
+            <p className="text-[0.6rem] text-white/50">{laneCallout.meta}</p>
           </div>
         </div>
       ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-5 z-[401] flex justify-center">
-        <div className="pointer-events-auto flex items-center gap-4 rounded-full border border-neutral-800 bg-black/60 px-4 py-2 text-[0.7rem] text-neutral-300 shadow-lg shadow-black/50">
+        <div className="pointer-events-auto flex items-center gap-4 rounded-full border border-white/15 bg-[#0f1729]/90 px-4 py-2 text-[0.7rem] text-white/70 shadow-lg shadow-black/50">
           {(Object.entries(statusTokens) as Array<[FleetUnitStatus, StatusToken]>).map(([status, token]) => (
             <span key={status} className="flex items-center gap-2">
               <span
@@ -190,7 +190,7 @@ export function FleetMap({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 right-4 z-[401] rounded-lg border border-neutral-800/80 bg-black/60 px-3 py-1 text-[0.55rem] uppercase tracking-wide text-neutral-500 shadow-lg shadow-black/50">
+      <div className="pointer-events-none absolute bottom-4 right-4 z-[401] rounded-lg border border-white/15 bg-[#0f1729]/90 px-3 py-1 text-[0.55rem] uppercase tracking-wide text-white/50 shadow-lg shadow-black/50">
         <span dangerouslySetInnerHTML={{ __html: TILE_LAYER_ATTRIBUTION }} />
       </div>
     </div>

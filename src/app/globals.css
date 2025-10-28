@@ -2,45 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* App theme */
+:root {
+  color-scheme: dark;
+}
+
 html,
 body {
   height: 100%;
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 antialiased;
-  background-attachment: fixed;
-  background-image: radial-gradient(circle at top, rgba(51, 65, 85, 0.35), rgba(15, 23, 42, 0)),
-    radial-gradient(circle at bottom, rgba(30, 41, 59, 0.25), rgba(15, 23, 42, 0));
+  @apply bg-[#0a0d16] text-white antialiased;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 a {
   @apply underline-offset-4 transition hover:underline;
 }
 
-.card {
-  @apply rounded-2xl border border-slate-800/70 bg-slate-900/70 shadow-card backdrop-blur;
-}
-.card-title {
-  @apply text-base font-semibold tracking-wide text-slate-200;
-}
-.stat {
-  @apply text-4xl font-bold tracking-tight;
-}
-.stat-sub {
-  @apply text-sm text-slate-400;
-}
-.section-title {
-  @apply text-xs font-semibold text-slate-400 uppercase tracking-wider;
-}
-.nav-link {
-  @apply rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-800/70 hover:text-white;
+.text-secondary {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .leaflet-container {
   background-color: #0b0f1a;
 }
+
 .leaflet-tooltip {
   background-color: transparent;
   border: none;
