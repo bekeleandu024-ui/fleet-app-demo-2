@@ -456,8 +456,8 @@ export default function BookTripButton(props: BaseProps) {
       }
 
       setStatus("success");
-      setMessage("Trip booked. Redirecting to live log…");
-      router.push(`/drivers/logs/${result.trip.id}`);
+      setMessage("Trip booked. Redirecting to trips board…");
+      router.push("/trips");
     } catch (error) {
       console.error("Failed to book trip", error);
       setStatus("error");
