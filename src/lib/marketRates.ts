@@ -1,4 +1,5 @@
 import { MarketLane } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 import prisma from "./prisma";
 
@@ -70,7 +71,15 @@ export async function upsertMarketLane(
 }
 
 export async function getAllMarketLanes(): Promise<MarketLane[]> {
-  return prisma.marketLane.findMany({
-    orderBy: { updatedAt: "desc" },
-  });
+  try {
+    return await prisma.marketLane.findMany({
+      orderBy: { updatedAt: "desc" },
+    });
+  } catch (error) {
+    if (error instanceof PrismaClientKnownRequestError && error.code === "P2021") {
+      return [];
+    }
+
+    throw error;
+  }
 }
