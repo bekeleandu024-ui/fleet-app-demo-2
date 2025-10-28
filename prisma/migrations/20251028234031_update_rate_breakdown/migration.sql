@@ -81,7 +81,29 @@ CREATE TABLE "new_Rate" (
     "trailerMaintCPM" DECIMAL NOT NULL,
     "rollingCPM" DECIMAL NOT NULL
 );
-INSERT INTO "new_Rate" ("addOnsCPM", "fixedCPM", "id", "rollingCPM", "type", "wageCPM", "zone") SELECT "addOnsCPM", "fixedCPM", "id", "rollingCPM", "type", "wageCPM", "zone" FROM "Rate";
+INSERT INTO "new_Rate" (
+    "addOnsCPM",
+    "fixedCPM",
+    "fuelCPM",
+    "id",
+    "rollingCPM",
+    "trailerMaintCPM",
+    "truckMaintCPM",
+    "type",
+    "wageCPM",
+    "zone"
+) SELECT
+    "addOnsCPM",
+    "fixedCPM",
+    0,
+    "id",
+    "rollingCPM",
+    0,
+    0,
+    "type",
+    "wageCPM",
+    "zone"
+FROM "Rate";
 DROP TABLE "Rate";
 ALTER TABLE "new_Rate" RENAME TO "Rate";
 CREATE INDEX "Rate_type_idx" ON "Rate"("type");
