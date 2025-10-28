@@ -199,11 +199,12 @@ const loadBookingData = async () => {
 export default async function BookPage({
   searchParams,
 }: {
-  searchParams?: SearchParams;
+  searchParams?: Promise<SearchParams>;
 }) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const { safeOrders, safeDrivers, safeUnits, safeRates } = await loadBookingData();
 
-  const selectedOrderId = getSelectedOrderId(safeOrders, searchParams);
+  const selectedOrderId = getSelectedOrderId(safeOrders, resolvedSearchParams);
   const selectedOrder = safeOrders.find((order) => order.id === selectedOrderId) ?? null;
 
   const suggestion = selectedOrder
@@ -279,6 +280,50 @@ export default async function BookPage({
         meta: unit.homeBase ? `Home ${unit.homeBase}` : unit.status ?? "Available",
         highlight: index === 0,
       }));
+
+  const defaultDriverRecord = suggestion
+    ? safeDrivers.find((driver) => driver.id === suggestion.suggestedDriver.id) ?? null
+    : safeDrivers[0] ?? null;
+  const defaultUnitRecord = suggestion
+    ? safeUnits.find((unit) => unit.id === suggestion.suggestedUnit.id) ?? null
+    : safeUnits[0] ?? null;
+  const defaultRateRecord = suggestion
+    ? safeRates.find((rate) => rate.id === suggestion.selectedRateId) ?? null
+    : safeRates[0] ?? null;
+
+  const defaultDriverId = defaultDriverRecord?.id ?? (suggestion ? suggestion.suggestedDriver.id : null);
+  const defaultUnitId = defaultUnitRecord?.id ?? (suggestion ? suggestion.suggestedUnit.id : null);
+  const defaultRateId = defaultRateRecord?.id ?? (suggestion ? suggestion.selectedRateId : null);
+
+  const defaultDriverName = suggestion
+    ? suggestion.suggestedDriver.name
+    : defaultDriverRecord?.name ?? "";
+  const defaultUnitCode = suggestion
+    ? suggestion.suggestedUnit.code
+    : defaultUnitRecord?.code ?? "";
+
+  const defaultTripType = suggestion
+    ? selectedRateForBooking?.type ?? null
+    : defaultRateRecord?.type ?? null;
+  const defaultTripZone = suggestion
+    ? selectedRateForBooking?.zone ?? null
+    : defaultRateRecord?.zone ?? null;
+
+  const defaultMiles = suggestion?.etaEstimate.miles ?? 0;
+  const defaultRpmQuoted = suggestion?.suggestedRate.rpmQuoted ?? defaultRateRecord?.rpm ?? 0;
+  const defaultTotalCpm = suggestion?.suggestedRate.totalCPM
+    ?? (defaultRateRecord
+      ? defaultRateRecord.fixedCPM + defaultRateRecord.wageCPM + defaultRateRecord.addOnsCPM + defaultRateRecord.rollingCPM
+      : 0);
+
+  const bookingNotes = suggestion?.notesForDispatcher ?? "Manual booking created from Trip Booking Control Center.";
+  const bookingHighlights = suggestion
+    ? [
+        suggestion.suggestedDriver.reason,
+        suggestion.suggestedUnit.reason,
+        `Market ${suggestion.suggestedRate.rpmMarket.toFixed(2)} vs Quote ${suggestion.suggestedRate.rpmQuoted.toFixed(2)}`,
+      ]
+    : [];
 
   return (
     <div className="space-y-8">
@@ -484,97 +529,98 @@ export default async function BookPage({
             </div>
 
             {selectedOrder ? (
-              suggestion ? (
-                <div className="mt-4 space-y-5">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recommended Driver</h3>
-                      <p className="mt-1 text-sm text-neutral-200">{suggestion.suggestedDriver.name}</p>
-                      <p className="text-xs text-neutral-400">{suggestion.suggestedDriver.reason}</p>
+              <div className="mt-4 space-y-5">
+                {suggestion ? (
+                  <div className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recommended Driver</h3>
+                        <p className="mt-1 text-sm text-neutral-200">{suggestion.suggestedDriver.name}</p>
+                        <p className="text-xs text-neutral-400">{suggestion.suggestedDriver.reason}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recommended Unit</h3>
+                        <p className="mt-1 text-sm text-neutral-200">{suggestion.suggestedUnit.code}</p>
+                        <p className="text-xs text-neutral-400">{suggestion.suggestedUnit.reason}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recommended Unit</h3>
-                      <p className="mt-1 text-sm text-neutral-200">{suggestion.suggestedUnit.code}</p>
-                      <p className="text-xs text-neutral-400">{suggestion.suggestedUnit.reason}</p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Quoted Rate vs Market</div>
+                        <div className="mt-2 text-xl font-semibold text-neutral-100">
+                          ${suggestion.suggestedRate.rpmQuoted.toFixed(2)}/mi
+                        </div>
+                        <p className="text-xs text-neutral-400">
+                          Market index {suggestion.suggestedRate.rpmMarket.toFixed(2)} RPM.
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">ETA &amp; Miles</div>
+                        <div className="mt-2 text-xl font-semibold text-neutral-100">
+                          {suggestion.etaEstimate.miles.toFixed(0)} mi · {(suggestion.etaEstimate.etaMinutes / 60).toFixed(1)} hr
+                        </div>
+                        <p className="text-xs text-neutral-400">{suggestion.etaEstimate.trafficNote}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Quoted Rate vs Market</div>
-                      <div className="mt-2 text-xl font-semibold text-neutral-100">
-                        ${suggestion.suggestedRate.rpmQuoted.toFixed(2)}/mi
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Projected Margin</div>
+                      <div className={`mt-2 text-xl font-semibold tracking-tight ${marginClass(suggestion.suggestedRate.estMarginPct)}`}>
+                        {(suggestion.suggestedRate.estMarginPct * 100).toFixed(1)}%
                       </div>
                       <p className="text-xs text-neutral-400">
-                        Market index {suggestion.suggestedRate.rpmMarket.toFixed(2)} RPM.
+                        Total CPM {suggestion.suggestedRate.totalCPM.toFixed(2)}. Internal cost engine (fixed+wage+rolling+add-ons).
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Why this assignment?</h3>
+                      <p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-neutral-400">
+                        {suggestion.notesForDispatcher}
                       </p>
                     </div>
                     <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">ETA &amp; Miles</div>
-                      <div className="mt-2 text-xl font-semibold text-neutral-100">
-                        {suggestion.etaEstimate.miles.toFixed(0)} mi · {(suggestion.etaEstimate.etaMinutes / 60).toFixed(1)} hr
-                      </div>
-                      <p className="text-xs text-neutral-400">{suggestion.etaEstimate.trafficNote}</p>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Opportunity Summary</div>
+                      <ul className="mt-2 space-y-1 text-xs text-neutral-300">
+                        <li>
+                          Margin guardrail {suggestion.suggestedRate.estMarginPct >= 0.15 ? "healthy" : "under review"} at
+                          {(suggestion.suggestedRate.estMarginPct * 100).toFixed(1)}%.
+                        </li>
+                        <li>
+                          Quote is ${suggestion.suggestedRate.rpmQuoted.toFixed(2)} vs market {suggestion.suggestedRate.rpmMarket.toFixed(2)} RPM.
+                        </li>
+                        <li>
+                          Driver has {(suggestion.etaEstimate.etaMinutes / 60).toFixed(1)} hours projected drive time with
+                          buffer for dwell.
+                        </li>
+                      </ul>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Projected Margin</div>
-                    <div className={`mt-2 text-xl font-semibold tracking-tight ${marginClass(suggestion.suggestedRate.estMarginPct)}`}>
-                      {(suggestion.suggestedRate.estMarginPct * 100).toFixed(1)}%
-                    </div>
-                    <p className="text-xs text-neutral-400">
-                      Total CPM {suggestion.suggestedRate.totalCPM.toFixed(2)}. Internal cost engine (fixed+wage+rolling+add-ons).
-                    </p>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
+                    AI dispatch hasn't returned a recommendation yet. Book manually below.
                   </div>
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Why this assignment?</h3>
-                    <p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-neutral-400">
-                      {suggestion.notesForDispatcher}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Opportunity Summary</div>
-                    <ul className="mt-2 space-y-1 text-xs text-neutral-300">
-                      <li>
-                        Margin guardrail {suggestion.suggestedRate.estMarginPct >= 0.15 ? "healthy" : "under review"} at
-                        {(suggestion.suggestedRate.estMarginPct * 100).toFixed(1)}%.
-                      </li>
-                      <li>
-                        Quote is ${suggestion.suggestedRate.rpmQuoted.toFixed(2)} vs market {suggestion.suggestedRate.rpmMarket.toFixed(2)} RPM.
-                      </li>
-                      <li>
-                        Driver has {(suggestion.etaEstimate.etaMinutes / 60).toFixed(1)} hours projected drive time with
-                        buffer for dwell.
-                      </li>
-                    </ul>
-                  </div>
-                  <BookTripButton
-                    orderId={selectedOrder.id}
-                    driverId={suggestion.suggestedDriver.id}
-                    unitId={suggestion.suggestedUnit.id}
-                    rateId={suggestion.selectedRateId}
-                    driverName={suggestion.suggestedDriver.name}
-                    unitCode={suggestion.suggestedUnit.code}
-                    tripType={selectedRateForBooking?.type ?? null}
-                    tripZone={selectedRateForBooking?.zone ?? null}
-                    miles={suggestion.etaEstimate.miles}
-                    rpmQuoted={suggestion.suggestedRate.rpmQuoted}
-                    totalCpm={suggestion.suggestedRate.totalCPM}
-                    notes={suggestion.notesForDispatcher}
-                    highlights={[
-                      suggestion.suggestedDriver.reason,
-                      suggestion.suggestedUnit.reason,
-                      `Market ${suggestion.suggestedRate.rpmMarket.toFixed(2)} vs Quote ${suggestion.suggestedRate.rpmQuoted.toFixed(2)}`,
-                    ]}
-                    orderOrigin={selectedOrder.origin}
-                    orderDestination={selectedOrder.destination}
-                    customerName={selectedOrder.customer}
-                  />
-                </div>
-              ) : (
-                <div className="mt-6 rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
-                  Generating recommendation from live feeds…
-                </div>
-              )
+                )}
+                <BookTripButton
+                  orderId={selectedOrder.id}
+                  driverId={defaultDriverId}
+                  unitId={defaultUnitId}
+                  rateId={defaultRateId}
+                  drivers={safeDrivers}
+                  units={safeUnits}
+                  rates={safeRates}
+                  driverName={defaultDriverName}
+                  unitCode={defaultUnitCode}
+                  tripType={defaultTripType ?? null}
+                  tripZone={defaultTripZone ?? null}
+                  miles={defaultMiles}
+                  rpmQuoted={defaultRpmQuoted}
+                  totalCpm={defaultTotalCpm}
+                  notes={bookingNotes}
+                  highlights={bookingHighlights}
+                  orderOrigin={selectedOrder.origin}
+                  orderDestination={selectedOrder.destination}
+                  customerName={selectedOrder.customer}
+                />
+              </div>
             ) : (
               <div className="mt-6 rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
                 Select an order to see suggested driver, unit, and rate.
