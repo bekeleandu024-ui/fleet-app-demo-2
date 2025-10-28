@@ -15,7 +15,9 @@ export const TOP_NAV_LINKS: NavLink[] = [
   { label: "Book Trip", href: "/book" },
   { label: "Orders", href: "/orders" },
   { label: "Trips", href: "/trips" },
-  { label: "Fleet", href: "/fleet" },
+  { label: "Units", href: "/units" },
+  { label: "Drivers", href: "/drivers" },
+  { label: "Map", href: "/map" },
   { label: "Analytics", href: "/analytics" },
 ];
 
