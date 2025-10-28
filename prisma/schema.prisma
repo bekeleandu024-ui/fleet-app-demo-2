@@ -238,3 +238,13 @@ model Rule {
   @@index([ruleKey, scope])
   @@index([scope])
 }
+
+model MarketLane {
+  id          String   @id @default(cuid())
+  origin      String
+  destination String
+  rpm         Float
+  source      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

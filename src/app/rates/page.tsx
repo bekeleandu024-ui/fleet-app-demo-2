@@ -1,23 +1,26 @@
 import type { ReactNode } from "react";
 
+import { getAllMarketLanes } from "@/lib/marketRates";
 import prisma from "@/lib/prisma";
-import { getLaneRate } from "@/src/server/integrations/marketRates";
 
 import DashboardCard from "@/src/components/DashboardCard";
-import LaneQueryForm from "./LaneQueryForm";
-
-function formatUpdated(date: Date) {
-  return date.toLocaleString();
-}
+import MarketRatesSection from "./MarketRatesSection";
 
 const pillBaseClass = "inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-medium text-white";
 
 export default async function RatesPage() {
-  const [[laneChi, laneNyc], rates, settings] = await Promise.all([
-    Promise.all([getLaneRate("GTA", "CHI"), getLaneRate("GTA", "NYC")]),
+  const [rates, settings, marketLanes] = await Promise.all([
     prisma.rate.findMany({ orderBy: [{ type: "asc" }, { zone: "asc" }] }),
     prisma.rateSetting.findMany({ orderBy: [{ rateKey: "asc" }, { category: "asc" }] }),
+    getAllMarketLanes(),
   ]);
+
+  const laneChi = marketLanes.find(
+    (lane) => lane.origin.toUpperCase() === "GTA" && lane.destination.toUpperCase() === "CHI",
+  );
+  const laneNyc = marketLanes.find(
+    (lane) => lane.origin.toUpperCase() === "GTA" && lane.destination.toUpperCase() === "NYC",
+  );
 
   const safeRates = rates.map((rate) => ({
     id: rate.id,
@@ -40,40 +43,7 @@ export default async function RatesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <DashboardCard
-        title="Rates"
-        description="Per-mile cost templates for quick trip budgeting."
-      >
-        <LaneQueryForm />
-      </DashboardCard>
-
-      <DashboardCard title="Market Snapshot" description="Live spot data for priority GTA outbound lanes.">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm text-white/80">
-            <thead className="bg-white/5 text-xs uppercase tracking-wide text-white/60">
-              <tr>
-                <th className="px-4 py-3 font-medium">Lane</th>
-                <th className="px-4 py-3 text-right font-medium">Spot RPM</th>
-                <th className="px-4 py-3 font-medium">Source</th>
-                <th className="px-4 py-3 font-medium">Updated</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {[{ label: "GTA → CHI", data: laneChi }, { label: "GTA → NYC", data: laneNyc }].map(({ label, data }) => (
-                <tr key={label} className="transition hover:bg-white/5">
-                  <td className="px-4 py-3 text-white">{label}</td>
-                  <td className="px-4 py-3 text-right text-white">${data.rpm.toFixed(2)}/mi</td>
-                  <td className="px-4 py-3 text-white/70">{data.source}</td>
-                  <td className="px-4 py-3 text-white/70">{formatUpdated(data.lastUpdated)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-4 text-xs text-white/60">
-          External rates are advisory only. Use internal rate settings for contracted customers.
-        </p>
-      </DashboardCard>
+      <MarketRatesSection />
 
       <DashboardCard title="Rate Templates" description="Internal cost structure per zone.">
         <div className="overflow-x-auto">
