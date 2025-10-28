@@ -10,18 +10,18 @@ export interface TripOperationalStatus {
 }
 
 const COMPLETION_EVENT_TYPES = new Set([
-  "PICKUP_ARRIVE",
-  "DELIVERY_ARRIVE",
+  "ARRIVED_PICKUP",
+  "ARRIVED_DELIVERY",
   "DROP_HOOK",
-  "BORDER_CROSS",
+  "CROSSED_BORDER",
 ]);
 
 const MOVEMENT_EVENT_TYPES = new Set([
-  "PICKUP_ARRIVE",
-  "PICKUP_DEPART",
-  "DELIVERY_ARRIVE",
-  "DELIVERY_DEPART",
-  "BORDER_CROSS",
+  "ARRIVED_PICKUP",
+  "LEFT_PICKUP",
+  "ARRIVED_DELIVERY",
+  "LEFT_DELIVERY",
+  "CROSSED_BORDER",
   "DROP_HOOK",
 ]);
 
@@ -125,7 +125,7 @@ export async function getTripOperationalStatus(tripId: string): Promise<TripOper
 
   const firstPickup = stops.find((stop) => stop.stopType === "PICKUP") ?? null;
   const firstPickupArrival = firstPickup
-    ? events.find((event) => event.stopId === firstPickup.id && event.type === "PICKUP_ARRIVE") ?? null
+    ? events.find((event) => event.stopId === firstPickup.id && event.type === "ARRIVED_PICKUP") ?? null
     : null;
 
   let delayRiskBadge: TripOperationalStatus["delayRiskBadge"] = {
@@ -176,7 +176,7 @@ export async function getTripOperationalStatus(tripId: string): Promise<TripOper
 
   if (nextStop && nextStop.stopType === "BORDER") {
     const borderLogged = events.some(
-      (event) => event.stopId === nextStop.id && event.type === "BORDER_CROSS"
+      (event) => event.stopId === nextStop.id && event.type === "CROSSED_BORDER"
     );
     if (!borderLogged) {
       if (!nextStop.scheduledAt) {

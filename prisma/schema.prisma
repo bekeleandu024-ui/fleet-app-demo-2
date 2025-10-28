@@ -96,6 +96,7 @@ model Trip {
   unitRef              Unit?     @relation("TripUnit", fields: [unitId], references: [id])
   rateRef              Rate?     @relation("TripRate", fields: [rateId], references: [id])
   events               Event[]
+  tripEvents           TripEvent[]
   stops                TripStop[]
 }
 
@@ -111,6 +112,33 @@ model Event {
   lon       Float?
   notes     String?
   createdAt DateTime @default(now())
+}
+
+model TripEvent {
+  id            String         @id @default(cuid())
+  tripId        String
+  trip          Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  eventType     TripEventType
+  stopId        String?
+  stop          TripStop?      @relation(fields: [stopId], references: [id])
+  stopLabel     String?
+  odometerMiles Float?
+  lat           Float?
+  lon           Float?
+  at            DateTime       @default(now())
+
+  @@index([tripId, at])
+}
+
+enum TripEventType {
+  TRIP_START
+  ARRIVED_PICKUP
+  LEFT_PICKUP
+  ARRIVED_DELIVERY
+  LEFT_DELIVERY
+  CROSSED_BORDER
+  DROP_HOOK
+  TRIP_FINISHED
 }
 
 model TripStop {
@@ -131,6 +159,7 @@ model TripStop {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   events      Event[]
+  tripEvents TripEvent[]
 }
 
 model Driver {

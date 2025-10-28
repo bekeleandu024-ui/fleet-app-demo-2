@@ -96,15 +96,15 @@ function mapEventKind(type: string, stopType: string | null): StopDTO["kind"] | 
   switch (type) {
     case "TRIP_START":
       return "start";
-    case "TRIP_END":
+    case "TRIP_FINISHED":
       return "finish";
-    case "PICKUP_ARRIVE":
-    case "PICKUP_DEPART":
+    case "ARRIVED_PICKUP":
+    case "LEFT_PICKUP":
       return "pickup";
-    case "DELIVERY_ARRIVE":
-    case "DELIVERY_DEPART":
+    case "ARRIVED_DELIVERY":
+    case "LEFT_DELIVERY":
       return "delivery";
-    case "BORDER_CROSS":
+    case "CROSSED_BORDER":
       return "border";
     default:
       if (stopType === "BORDER") {
@@ -156,7 +156,7 @@ function resolveEventCoordinates(
       return { lat: trip.originLat, lon: trip.originLon };
     }
   }
-  if (index === total - 1 || event.type === "TRIP_END") {
+  if (index === total - 1 || event.type === "TRIP_FINISHED") {
     if (typeof trip.destLat === "number" && typeof trip.destLon === "number") {
       return { lat: trip.destLat, lon: trip.destLon };
     }
@@ -315,17 +315,17 @@ function prettyEventType(type: string) {
   switch (type) {
     case "TRIP_START":
       return "Trip started";
-    case "TRIP_END":
+    case "TRIP_FINISHED":
       return "Trip finished";
-    case "PICKUP_ARRIVE":
+    case "ARRIVED_PICKUP":
       return "Arrived pickup";
-    case "PICKUP_DEPART":
+    case "LEFT_PICKUP":
       return "Departed pickup";
-    case "DELIVERY_ARRIVE":
+    case "ARRIVED_DELIVERY":
       return "Arrived delivery";
-    case "DELIVERY_DEPART":
+    case "LEFT_DELIVERY":
       return "Departed delivery";
-    case "BORDER_CROSS":
+    case "CROSSED_BORDER":
       return "Crossed border";
     case "DROP_HOOK":
       return "Drop & hook";

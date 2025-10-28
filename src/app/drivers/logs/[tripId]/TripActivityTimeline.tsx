@@ -83,17 +83,17 @@ function prettyEventType(type: string) {
   switch (type) {
     case "TRIP_START":
       return "Trip started";
-    case "TRIP_END":
+    case "TRIP_FINISHED":
       return "Trip finished";
-    case "PICKUP_ARRIVE":
+    case "ARRIVED_PICKUP":
       return "Arrived pickup";
-    case "PICKUP_DEPART":
+    case "LEFT_PICKUP":
       return "Departed pickup";
-    case "DELIVERY_ARRIVE":
+    case "ARRIVED_DELIVERY":
       return "Arrived delivery";
-    case "DELIVERY_DEPART":
+    case "LEFT_DELIVERY":
       return "Departed delivery";
-    case "BORDER_CROSS":
+    case "CROSSED_BORDER":
       return "Crossed border";
     case "DROP_HOOK":
       return "Drop & hook";
@@ -106,19 +106,19 @@ function eventAccent(event: TimelineEventDTO) {
   if (event.type === "TRIP_START") {
     return { bar: "bg-emerald-400" };
   }
-  if (event.type === "TRIP_END") {
+  if (event.type === "TRIP_FINISHED") {
     return { bar: "bg-slate-400" };
   }
-  if (event.stop?.stopType === "BORDER" || event.type === "BORDER_CROSS") {
+  if (event.stop?.stopType === "BORDER" || event.type === "CROSSED_BORDER") {
     return { bar: "bg-rose-400" };
   }
   if (event.stop?.stopType === "DROP_HOOK" || event.type === "DROP_HOOK") {
     return { bar: "bg-amber-300" };
   }
-  if (event.stop?.stopType === "PICKUP" || event.type.startsWith("PICKUP")) {
+  if (event.stop?.stopType === "PICKUP" || event.type.startsWith("ARRIVED_PICKUP") || event.type.startsWith("LEFT_PICKUP")) {
     return { bar: "bg-sky-400" };
   }
-  if (event.stop?.stopType === "DELIVERY" || event.type.startsWith("DELIVERY")) {
+  if (event.stop?.stopType === "DELIVERY" || event.type.startsWith("ARRIVED_DELIVERY") || event.type.startsWith("LEFT_DELIVERY")) {
     return { bar: "bg-violet-400" };
   }
   return { bar: "bg-white/30" };

@@ -68,12 +68,23 @@ function countEvents(trip: { events: Array<{ type: string | null }> }) {
     PICK: 0,
     DEL: 0,
   };
+
   for (const event of trip.events) {
-    const kind = event.type?.toUpperCase();
-    if (kind && kind in counters) {
-      counters[kind as keyof typeof counters] += 1;
+    const type = event.type?.toUpperCase();
+    if (!type) {
+      continue;
+    }
+    if (type === "CROSSED_BORDER") {
+      counters.BC += 1;
+    } else if (type === "DROP_HOOK") {
+      counters.DH += 1;
+    } else if (type === "ARRIVED_PICKUP") {
+      counters.PICK += 1;
+    } else if (type === "ARRIVED_DELIVERY") {
+      counters.DEL += 1;
     }
   }
+
   return counters;
 }
 

@@ -34,7 +34,7 @@ export async function getWeeklyInsights(): Promise<Insight[]> {
         },
       },
     }),
-    prisma.trip.count({ where: { events: { some: { type: { contains: "border" } } } } }),
+    prisma.trip.count({ where: { events: { some: { type: { contains: "BORDER" } } } } }),
   ]);
 
   const avgMargin = toNumber(currentMargins._avg.marginPct);
@@ -86,7 +86,7 @@ export async function getAnalyticsKpis() {
     }),
     prisma.event.count({
       where: {
-        type: { in: ["PU_ON_TIME", "DEL_ON_TIME"] },
+        type: { in: ["ARRIVED_PICKUP", "ARRIVED_DELIVERY"] },
         at: { gte: startDay },
       },
     }),
