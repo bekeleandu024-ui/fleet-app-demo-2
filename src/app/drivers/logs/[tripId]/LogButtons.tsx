@@ -1,44 +1,42 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { logDriverEvent } from "./actions";
+import type {
+  TripCostingSnapshot,
+  TripEventLogResponse,
+  TripEventType,
+  TripStopOption,
+} from "@/types/trip";
 
-const BUTTONS: { label: string; eventType: string }[] = [
+const BUTTONS: { label: string; eventType: TripEventType }[] = [
   { label: "Trip Start", eventType: "TRIP_START" },
-  { label: "Arrived Pickup", eventType: "PICKUP_ARRIVE" },
-  { label: "Left Pickup", eventType: "PICKUP_DEPART" },
-  { label: "Arrived Delivery", eventType: "DELIVERY_ARRIVE" },
-  { label: "Left Delivery", eventType: "DELIVERY_DEPART" },
-  { label: "Crossed Border", eventType: "BORDER_CROSS" },
+  { label: "Arrived Pickup", eventType: "ARRIVED_PICKUP" },
+  { label: "Left Pickup", eventType: "LEFT_PICKUP" },
+  { label: "Arrived Delivery", eventType: "ARRIVED_DELIVERY" },
+  { label: "Left Delivery", eventType: "LEFT_DELIVERY" },
+  { label: "Crossed Border", eventType: "CROSSED_BORDER" },
   { label: "Drop & Hook", eventType: "DROP_HOOK" },
-  { label: "Trip Finished", eventType: "TRIP_END" },
+  { label: "Trip Finished", eventType: "TRIP_FINISHED" },
 ];
 
-const STOP_SPECIFIC_EVENTS = new Set([
-  "PICKUP_ARRIVE",
-  "PICKUP_DEPART",
-  "DELIVERY_ARRIVE",
-  "DELIVERY_DEPART",
-  "BORDER_CROSS",
+const STOP_SPECIFIC_EVENTS = new Set<TripEventType>([
+  "ARRIVED_PICKUP",
+  "LEFT_PICKUP",
+  "ARRIVED_DELIVERY",
+  "LEFT_DELIVERY",
+  "CROSSED_BORDER",
   "DROP_HOOK",
 ]);
 
-interface StopOption {
-  id: string;
-  seq: number;
-  stopType: string;
-  name?: string | null;
-  city?: string | null;
-  state?: string | null;
-}
-
 interface Props {
   tripId: string;
-  stops: StopOption[];
+  stops: TripStopOption[];
+  onTripUpdated?: (trip: TripCostingSnapshot) => void;
 }
 
-function describeStop(stop: StopOption) {
+function describeStop(stop: TripStopOption) {
   const labelParts: string[] = [];
   labelParts.push(`Stop ${stop.seq}`);
   if (stop.stopType) {
@@ -70,12 +68,13 @@ async function requestGeolocation() {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
-      }
+      },
     );
   });
 }
 
-export default function LogButtons({ tripId, stops }: Props) {
+export default function LogButtons({ tripId, stops, onTripUpdated }: Props) {
+  const router = useRouter();
   const [selectedStopId, setSelectedStopId] = useState<string>(stops[0]?.id ?? "");
   const [odometer, setOdometer] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,33 +90,60 @@ export default function LogButtons({ tripId, stops }: Props) {
     }));
   }, [stops]);
 
-  async function handleClick(eventType: string) {
-    setIsSubmitting(true);
-    setMessage(null);
-    try {
-      const requiresStop = STOP_SPECIFIC_EVENTS.has(eventType);
-      const stopId = requiresStop ? selectedStopId || null : null;
-      if (requiresStop && !stopId) {
-        setMessage("Select a stop to log this event.");
+  async function handleClick(eventType: TripEventType) {
+    const requiresStop = STOP_SPECIFIC_EVENTS.has(eventType);
+    const stopId = selectedStopId || null;
+    if (requiresStop && !stopId) {
+      setMessage("Select a stop to log this event.");
+      return;
+    }
+
+    const trimmedOdometer = odometer.trim();
+    let odometerNumber: number | null = null;
+    if (trimmedOdometer) {
+      const parsed = Number.parseFloat(trimmedOdometer);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        setMessage("Enter a valid odometer reading.");
         return;
       }
+      odometerNumber = parsed;
+    }
 
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
       const coords = await requestGeolocation();
-      const odometerValue = odometer.trim() ? Number(odometer) : null;
-      const odometerNumber = odometerValue !== null && Number.isFinite(odometerValue)
-        ? odometerValue
-        : null;
+      const stop = stopId ? stops.find((candidate) => candidate.id === stopId) : null;
+      const stopLabel = stop ? describeStop(stop) : null;
 
-      await logDriverEvent({
-        tripId,
-        eventType,
-        stopId,
-        lat: coords?.lat ?? null,
-        lon: coords?.lon ?? null,
-        odometer: odometerNumber,
+      const response = await fetch(`/api/trips/${tripId}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType,
+          stopId,
+          stopLabel,
+          odometerMiles: odometerNumber,
+          lat: coords?.lat ?? null,
+          lon: coords?.lon ?? null,
+        }),
       });
 
-      setMessage("Event logged.");
+      const json = (await response.json()) as
+        | TripEventLogResponse
+        | { success: false; error?: string };
+
+      if (!response.ok || json.success !== true) {
+        const errorMessage = "error" in json && json.error ? json.error : "Request failed";
+        throw new Error(errorMessage);
+      }
+
+      const data = json as TripEventLogResponse;
+      onTripUpdated?.(data.trip);
+      setMessage(`Event logged. Margin ${(data.trip.marginPct * 100).toFixed(1)}%.`);
+      setOdometer("");
+      router.refresh();
     } catch (error) {
       console.error("Failed to log driver event", error);
       setMessage("Unable to record event. Try again.");
@@ -171,7 +197,7 @@ export default function LogButtons({ tripId, stops }: Props) {
             className="rounded-lg border border-neutral-700 bg-neutral-800/60 px-3 py-2 text-left font-semibold text-neutral-100 transition hover:bg-neutral-700/60 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <div className="text-[12px] leading-tight">{btn.label}</div>
-            <div className="text-[10px] font-normal text-neutral-400 leading-tight">
+            <div className="text-[10px] font-normal leading-tight text-neutral-400">
               Tap to timestamp now
             </div>
           </button>

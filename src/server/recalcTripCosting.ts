@@ -36,13 +36,13 @@ export async function recalcTripCosting(tripId: string) {
 
   for (const event of trip.events) {
     const type = event.type?.toUpperCase() ?? "";
-    if (type === "BORDER_CROSS") {
+    if (type === "CROSSED_BORDER") {
       borderCrossCount += 1;
     } else if (type === "DROP_HOOK") {
       dropHookCount += 1;
-    } else if (type.startsWith("PICKUP_")) {
+    } else if (type === "ARRIVED_PICKUP") {
       pickupCount += 1;
-    } else if (type.startsWith("DELIVERY_")) {
+    } else if (type === "ARRIVED_DELIVERY") {
       deliveryCount += 1;
     }
   }
