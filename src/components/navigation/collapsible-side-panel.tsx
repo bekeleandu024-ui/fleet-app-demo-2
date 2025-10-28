@@ -31,8 +31,8 @@ export default function CollapsibleNavPanel({ sections }: { sections: NavSection
 
   return (
     <aside
-      className={`w-full transition-[flex-basis] duration-300 ease-out lg:flex-shrink-0 ${
-        isOpen ? "lg:basis-80" : "lg:basis-16"
+      className={`w-full transition-[flex-basis] duration-300 ease-out lg:-ml-6 lg:flex-shrink-0 ${
+        isOpen ? "lg:basis-72" : "lg:basis-16"
       }`}
     >
       <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60 p-4 shadow-xl shadow-black/40">
