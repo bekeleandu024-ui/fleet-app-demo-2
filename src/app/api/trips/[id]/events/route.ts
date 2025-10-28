@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import prisma from "@/lib/prisma";
-import { recalcAddOnsForTrip } from "@/lib/recalcAddOnsForTrip";
+import { applyTripEventCosting } from "@/lib/applyTripEventCosting";
 import { buildTripCostingSnapshot, serializeTripEventForClient } from "@/lib/serializers";
 import type { TripEventLogResponse, TripEventType } from "@/types/trip";
 
@@ -104,7 +104,7 @@ export async function POST(
       },
     });
 
-    const updatedTrip = await recalcAddOnsForTrip(tripId);
+    const updatedTrip = await applyTripEventCosting(tripId, eventType);
     const tripSnapshot = buildTripCostingSnapshot(updatedTrip);
     const serializedEvent = serializeTripEventForClient(tripEvent);
 
