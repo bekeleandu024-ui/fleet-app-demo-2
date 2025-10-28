@@ -85,13 +85,17 @@ const marginClass = (value: number): string => {
   if (value >= 0.15) {
     return "text-emerald-400";
   }
+
   if (value >= 0.08) {
     return "text-amber-400";
   }
+
   return "text-rose-400";
 };
 
-const toSafeOrders = (orders: Awaited<ReturnType<typeof prisma.order.findMany>>): SafeOrder[] =>
+const toSafeOrders = (
+  orders: Awaited<ReturnType<typeof prisma.order.findMany>>,
+): SafeOrder[] =>
   orders.map((order) => ({
     id: order.id,
     customer: order.customer,
@@ -105,7 +109,9 @@ const toSafeOrders = (orders: Awaited<ReturnType<typeof prisma.order.findMany>>)
     notes: order.notes,
   }));
 
-const toSafeDrivers = (drivers: Awaited<ReturnType<typeof prisma.driver.findMany>>): SafeDriver[] =>
+const toSafeDrivers = (
+  drivers: Awaited<ReturnType<typeof prisma.driver.findMany>>,
+): SafeDriver[] =>
   drivers.map((driver) => ({
     id: driver.id,
     name: driver.name,
@@ -117,7 +123,9 @@ const toSafeDrivers = (drivers: Awaited<ReturnType<typeof prisma.driver.findMany
     blockedCustomers: driver.blockedCustomers ?? null,
   }));
 
-const toSafeUnits = (units: Awaited<ReturnType<typeof prisma.unit.findMany>>): SafeUnit[] =>
+const toSafeUnits = (
+  units: Awaited<ReturnType<typeof prisma.unit.findMany>>,
+): SafeUnit[] =>
   units.map((unit) => ({
     id: unit.id,
     code: unit.code,
@@ -130,7 +138,9 @@ const toSafeUnits = (units: Awaited<ReturnType<typeof prisma.unit.findMany>>): S
     lastKnownLon: unit.lastKnownLon ?? null,
   }));
 
-const toSafeRates = (rates: Awaited<ReturnType<typeof prisma.rate.findMany>>): SafeRate[] =>
+const toSafeRates = (
+  rates: Awaited<ReturnType<typeof prisma.rate.findMany>>,
+): SafeRate[] =>
   rates.map((rate) => ({
     id: rate.id,
     type: rate.type ?? null,
@@ -142,12 +152,16 @@ const toSafeRates = (rates: Awaited<ReturnType<typeof prisma.rate.findMany>>): S
     rollingCPM: Number(rate.rollingCPM),
   }));
 
-const getSelectedOrderId = (orders: SafeOrder[], searchParams?: SearchParams): string | null => {
+const getSelectedOrderId = (
+  orders: SafeOrder[],
+  searchParams?: SearchParams,
+): string | null => {
   if (!searchParams) {
     return orders[0]?.id ?? null;
   }
 
   const selectedOrderIdParam = searchParams.orderId;
+
   if (Array.isArray(selectedOrderIdParam)) {
     return selectedOrderIdParam[0] ?? orders[0]?.id ?? null;
   }
@@ -155,25 +169,39 @@ const getSelectedOrderId = (orders: SafeOrder[], searchParams?: SearchParams): s
   return selectedOrderIdParam ?? orders[0]?.id ?? null;
 };
 
-export default async function BookPage({
-  searchParams,
-}: {
-  searchParams?: SearchParams;
-}) {
+const loadBookingData = async () => {
   const [orders, drivers, units, rates] = await Promise.all([
     prisma.order.findMany({
       where: { status: "Qualified" },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.driver.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.unit.findMany({ where: { active: true, isOnHold: false }, orderBy: { code: "asc" } }),
-    prisma.rate.findMany({ orderBy: [{ type: "asc" }, { zone: "asc" }] }),
+    prisma.driver.findMany({
+      where: { active: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.unit.findMany({
+      where: { active: true, isOnHold: false },
+      orderBy: { code: "asc" },
+    }),
+    prisma.rate.findMany({
+      orderBy: [{ type: "asc" }, { zone: "asc" }],
+    }),
   ]);
 
-  const safeOrders = toSafeOrders(orders);
-  const safeDrivers = toSafeDrivers(drivers);
-  const safeUnits = toSafeUnits(units);
-  const safeRates = toSafeRates(rates);
+  return {
+    safeOrders: toSafeOrders(orders),
+    safeDrivers: toSafeDrivers(drivers),
+    safeUnits: toSafeUnits(units),
+    safeRates: toSafeRates(rates),
+  };
+};
+
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams;
+}) {
+  const { safeOrders, safeDrivers, safeUnits, safeRates } = await loadBookingData();
 
   const selectedOrderId = getSelectedOrderId(safeOrders, searchParams);
   const selectedOrder = safeOrders.find((order) => order.id === selectedOrderId) ?? null;
