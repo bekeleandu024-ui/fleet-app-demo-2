@@ -6,6 +6,8 @@ import type { FleetMapProps, UnitStatus } from "@/components/FleetMap";
 import FleetMapClient from "./FleetMapClient";
 import prisma from "@/lib/prisma";
 
+import DashboardCard from "@/src/components/DashboardCard";
+
 interface TripWithRelations {
   id: string;
   driver: string;
@@ -33,6 +35,23 @@ interface UnitRow {
   lastKnownLat?: number | null;
   lastKnownLon?: number | null;
   weeklyFixedCost?: number | null;
+}
+
+const pillBaseClass = "inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-medium text-white";
+
+const toneDot: Record<"ok" | "warn" | "danger", string> = {
+  ok: "bg-emerald-400",
+  warn: "bg-yellow-300",
+  danger: "bg-rose-400",
+};
+
+function Pill({ tone, children }: { tone: "ok" | "warn" | "danger"; children: ReactNode }) {
+  return (
+    <span className={pillBaseClass}>
+      <span className={`h-1.5 w-1.5 rounded-full ${toneDot[tone]}`} aria-hidden />
+      {children}
+    </span>
+  );
 }
 
 export default async function FleetPage() {
@@ -98,66 +117,60 @@ export default async function FleetPage() {
     });
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-neutral-100">Fleet Control</h1>
-        <p className="text-sm text-neutral-400">Live map of assets and commitments. Monitor risk and drill in instantly.</p>
-      </header>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard title="Active Trips" value={activeTrips.length} description="In motion / assigned" />
-        <StatCard title="At-Risk Trips" value={atRiskTripsCount} description="Needs attention" />
-        <StatCard title="Units On Hold" value={unitsOnHold} description="Maintenance / restricted" />
-      </div>
-
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold text-neutral-200">Fleet Map</div>
-              <div className="text-[11px] uppercase tracking-wide text-neutral-500">Active units &amp; live trips</div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <FleetMapClient units={mapUnits} trips={mapTrips} />
-          </div>
+    <div className="flex flex-col gap-6">
+      <DashboardCard
+        title="Fleet Control"
+        description="Live map of assets and commitments. Monitor risk and drill in instantly."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatCard title="Active Trips" value={activeTrips.length} description="In motion / assigned" />
+          <StatCard title="At-Risk Trips" value={atRiskTripsCount} description="Needs attention" />
+          <StatCard title="Units On Hold" value={unitsOnHold} description="Maintenance / restricted" />
         </div>
+      </DashboardCard>
 
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-neutral-200">Active Trips</div>
-            <div className="text-[11px] text-neutral-500">{activeTrips.length} trips</div>
-          </div>
-          <div className="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1 text-[12px] text-neutral-200">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <DashboardCard
+          title="Fleet Map"
+          description="Active units and live trips. Hover markers for margin + risk context."
+        >
+          <FleetMapClient units={mapUnits} trips={mapTrips} />
+        </DashboardCard>
+
+        <DashboardCard
+          title="Active Trips"
+          description="AI verdict combines margin health and delay projections."
+          headerRight={<span className="text-[11px] text-white/60">{activeTrips.length} trips</span>}
+        >
+          <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1 text-sm">
             {activeTrips.length === 0 ? (
-              <div className="text-[11px] text-neutral-500">No trips are in progress.</div>
+              <div className="text-sm text-white/60">No trips are in progress.</div>
             ) : (
               activeTrips.map((trip) => {
                 const margin = Number(trip.marginPct ?? 0);
                 const delayRisk = Number(trip.delayRiskPct ?? 0);
                 const lane = `${trip.order?.origin ?? "TBD"} → ${trip.order?.destination ?? "TBD"}`;
+                const tone = classifyRisk(margin, delayRisk);
                 return (
-                  <div key={trip.id} className="rounded-lg border border-neutral-800 bg-neutral-900/70 p-3 shadow-inner shadow-black/30">
+                  <div key={trip.id} className="rounded-lg border border-white/10 bg-white/5 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-[13px] font-semibold text-neutral-100">{trip.driver || "Unassigned"}</div>
-                        <div className="text-[11px] text-neutral-400">Unit {trip.unit || "—"}</div>
+                        <div className="text-sm font-semibold text-white">{trip.driver || "Unassigned"}</div>
+                        <div className="text-xs text-white/60">Unit {trip.unit || "—"}</div>
                       </div>
-                      <Badge tone={classifyRisk(margin, delayRisk)}>
-                        Margin {(margin * 100).toFixed(1)}%
-                      </Badge>
+                      <Pill tone={tone}>Margin {(margin * 100).toFixed(1)}%</Pill>
                     </div>
-                    <div className="mt-3 space-y-2 text-[11px] text-neutral-400">
+                    <div className="mt-3 space-y-2 text-xs text-white/70">
                       <div>
-                        <span className="text-[10px] uppercase tracking-wide text-neutral-500">Lane</span>
-                        <div className="text-[12px] text-neutral-200">{lane}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/50">Lane</div>
+                        <div className="text-sm text-white">{lane}</div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge tone={delayRisk > 0.3 ? "danger" : delayRisk > 0.1 ? "warn" : "ok"}>
+                        <Pill tone={delayRisk > 0.3 ? "danger" : delayRisk > 0.1 ? "warn" : "ok"}>
                           Delay risk {(delayRisk * 100).toFixed(0)}%
-                        </Badge>
+                        </Pill>
                         {trip.nextCommitmentAt ? (
-                          <span className="rounded border border-neutral-700/60 bg-neutral-800/60 px-2 py-[2px] text-[10px] text-neutral-300">
+                          <span className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-medium text-white/80">
                             Next {formatCommitment(new Date(trip.nextCommitmentAt))}
                           </span>
                         ) : null}
@@ -166,14 +179,14 @@ export default async function FleetPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link
                         href={`/drivers/logs/${trip.id}`}
-                        className="inline-flex items-center gap-1 rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200 transition hover:border-emerald-400/60 hover:text-emerald-100"
+                        className="inline-flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-[11px] font-medium text-emerald-200 transition hover:border-emerald-300/60 hover:text-emerald-100"
                       >
                         Open Log
                       </Link>
                       {trip.status === "Created" || trip.status === "Assigned" ? (
                         <Link
                           href={`/book?tripId=${trip.id}`}
-                          className="inline-flex items-center gap-1 rounded border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[11px] font-medium text-sky-200 transition hover:border-sky-400/60 hover:text-sky-100"
+                          className="inline-flex items-center gap-1 rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1 text-[11px] font-medium text-sky-200 transition hover:border-sky-300/60 hover:text-sky-100"
                         >
                           Book Page
                         </Link>
@@ -184,43 +197,47 @@ export default async function FleetPage() {
               })
             )}
           </div>
-        </div>
-      </section>
+        </DashboardCard>
+      </div>
 
-      <section className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 shadow-lg shadow-black/40">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-neutral-200">Units Overview</div>
-          <div className="text-[11px] text-neutral-500">{activeUnits.length} active units</div>
-        </div>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-left text-[12px] text-neutral-200">
-            <thead className="text-[10px] uppercase tracking-wide text-neutral-500">
-              <tr className="border-b border-neutral-800/70">
-                <th className="py-2 pr-4 font-normal">Unit</th>
-                <th className="py-2 pr-4 font-normal">Status</th>
-                <th className="py-2 pr-4 font-normal">Home Base</th>
-                <th className="py-2 pr-4 font-normal">Last Known</th>
-                <th className="py-2 pr-4 font-normal">Weekly Fixed Cost</th>
+      <DashboardCard
+        title="Units Overview"
+        description="Rostered tractors and straight trucks with last known telemetry."
+        headerRight={<span className="text-[11px] text-white/60">{activeUnits.length} active units</span>}
+      >
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm text-white/80">
+            <thead className="bg-white/5 text-xs uppercase tracking-wide text-white/60">
+              <tr>
+                <th className="py-2 pr-4 font-medium">Unit</th>
+                <th className="py-2 pr-4 font-medium">Status</th>
+                <th className="py-2 pr-4 font-medium">Home Base</th>
+                <th className="py-2 pr-4 font-medium">Last Known</th>
+                <th className="py-2 pr-4 font-medium">Weekly Fixed Cost</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-900/60">
+            <tbody className="divide-y divide-white/5">
               {activeUnits.map((unit) => (
-                <tr key={unit.id} className="hover:bg-neutral-900/60">
-                  <td className="py-2 pr-4 font-medium text-neutral-100">{unit.code}</td>
-                  <td className="py-2 pr-4">
-                    {unit.isOnHold ? (
-                      <span className="text-amber-300">On Hold</span>
-                    ) : unit.status === "Dispatched" ? (
-                      <span className="text-sky-300">Dispatched</span>
-                    ) : (
-                      <span className="text-emerald-300">Available</span>
-                    )}
+                <tr key={unit.id} className="transition hover:bg-white/5">
+                  <td className="py-3 pr-4 font-medium text-white">{unit.code}</td>
+                  <td className="py-3 pr-4">
+                    <span className={pillBaseClass}>
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          unit.isOnHold
+                            ? toneDot.danger
+                            : unit.status === "Dispatched"
+                              ? toneDot.warn
+                              : toneDot.ok
+                        }`}
+                        aria-hidden
+                      />
+                      {unit.isOnHold ? "On Hold" : unit.status === "Dispatched" ? "Dispatched" : "Available"}
+                    </span>
                   </td>
-                  <td className="py-2 pr-4 text-neutral-300">{unit.homeBase ?? "—"}</td>
-                  <td className="py-2 pr-4 text-neutral-300">
-                    {formatCoordinate(unit.lastKnownLat, unit.lastKnownLon)}
-                  </td>
-                  <td className="py-2 pr-4 text-neutral-300">
+                  <td className="py-3 pr-4 text-white/70">{unit.homeBase ?? "—"}</td>
+                  <td className="py-3 pr-4 text-white/70">{formatCoordinate(unit.lastKnownLat, unit.lastKnownLon)}</td>
+                  <td className="py-3 pr-4 text-white/70">
                     {unit.weeklyFixedCost ? `$${Number(unit.weeklyFixedCost).toFixed(2)}` : "—"}
                   </td>
                 </tr>
@@ -228,7 +245,7 @@ export default async function FleetPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </DashboardCard>
     </div>
   );
 }
@@ -243,22 +260,12 @@ function StatCard({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-      <div className="text-[11px] uppercase tracking-wide text-neutral-500">{title}</div>
-      <div className="mt-2 text-2xl font-semibold text-neutral-100">{value}</div>
-      <div className="text-[11px] text-neutral-500">{description}</div>
+    <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+      <div className="text-[11px] uppercase tracking-wide text-white/50">{title}</div>
+      <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+      <div className="text-[11px] text-white/60">{description}</div>
     </div>
   );
-}
-
-function Badge({ tone, children }: { tone: "ok" | "warn" | "danger"; children: ReactNode }) {
-  const toneClass =
-    tone === "danger"
-      ? "border-red-500/30 bg-red-500/10 text-red-400"
-      : tone === "warn"
-      ? "border-yellow-400/30 bg-yellow-400/10 text-yellow-300"
-      : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-  return <span className={`inline-flex items-center gap-1 rounded border px-2 py-[2px] text-[10px] font-medium leading-none ${toneClass}`}>{children}</span>;
 }
 
 function classifyUnitStatus(unit: UnitRow): UnitStatus {
