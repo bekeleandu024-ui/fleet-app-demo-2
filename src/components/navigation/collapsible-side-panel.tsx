@@ -1,61 +1,57 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId } from "react";
 import Link from "next/link";
 
 import type { NavSection } from "@/src/lib/navigation";
 
-export default function CollapsibleNavPanel({ sections }: { sections: NavSection[] }) {
-  const [isOpen, setIsOpen] = useState(false);
+interface CollapsibleNavPanelProps {
+  sections: NavSection[];
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export default function CollapsibleNavPanel({ sections, collapsed, onToggle }: CollapsibleNavPanelProps) {
   const panelId = useId();
-
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 1024px)");
-
-    const update = (event: MediaQueryListEvent | MediaQueryList) => {
-      setIsOpen(event.matches);
-    };
-
-    update(media);
-
-    const listener = (event: MediaQueryListEvent) => update(event);
-
-    if (typeof media.addEventListener === "function") {
-      media.addEventListener("change", listener);
-      return () => media.removeEventListener("change", listener);
-    }
-
-    media.addListener(listener);
-    return () => media.removeListener(listener);
-  }, []);
 
   return (
     <aside
-      className={`w-full transition-[flex-basis] duration-300 ease-out lg:-ml-6 lg:flex-shrink-0 ${
-        isOpen ? "lg:basis-72" : "lg:basis-12"
+      className={`w-full transition-all duration-300 ease-out lg:-ml-6 lg:flex-shrink-0 ${
+        collapsed ? "lg:w-[60px]" : "lg:w-[220px]"
       }`}
+      aria-expanded={!collapsed}
     >
       <div
         className={`relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60 shadow-xl shadow-black/40 ${
-          isOpen ? "p-4" : "px-2 py-4"
+          collapsed ? "items-center px-2 py-4" : "p-4"
         }`}
       >
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Navigate</div>
+        <div
+          className={`flex w-full items-center gap-3 ${collapsed ? "justify-center" : "justify-between"}`}
+        >
+          <div
+            className={`text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 ${
+              collapsed ? "sr-only" : ""
+            }`}
+          >
+            Navigate
+          </div>
           <button
             type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
+            onClick={onToggle}
             aria-controls={panelId}
-            aria-expanded={isOpen}
-            className="rounded-full border border-slate-800/80 bg-slate-900/80 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-300 transition hover:border-emerald-500/60 hover:text-white"
+            aria-expanded={!collapsed}
+            className={`rounded-full border border-slate-800/80 bg-slate-900/80 text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-300 transition hover:border-emerald-500/60 hover:text-white ${
+              collapsed ? "px-2 py-1" : "px-3 py-1"
+            }`}
           >
-            {isOpen ? "Collapse" : "Expand"}
+            {collapsed ? "EXPAND" : "COLLAPSE"}
           </button>
         </div>
         <div
           id={panelId}
-          className={`mt-4 space-y-6 overflow-y-auto pr-2 ${isOpen ? "" : "hidden"}`}
-          aria-hidden={!isOpen}
+          className={`mt-4 space-y-6 overflow-y-auto pr-2 ${collapsed ? "hidden" : ""}`}
+          aria-hidden={collapsed}
         >
           {sections.map((section) => (
             <div key={section.title} className="space-y-3">
@@ -77,9 +73,9 @@ export default function CollapsibleNavPanel({ sections }: { sections: NavSection
           ))}
         </div>
         <div
-          aria-hidden={isOpen}
-          className={`mt-6 flex flex-col gap-3 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-500 ${
-            isOpen ? "hidden" : ""
+          aria-hidden={!collapsed ? true : undefined}
+          className={`mt-6 flex flex-col items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-500 ${
+            collapsed ? "" : "hidden"
           }`}
         >
           {sections.map((section) => (
