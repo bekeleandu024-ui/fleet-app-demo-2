@@ -11,18 +11,49 @@ function formatPercent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function formatStopLocation(stop: {
+  name: string | null;
+  city: string | null;
+  state: string | null;
+}) {
+  const parts = [stop.name, stop.city, stop.state].filter((part) => part && part.trim().length > 0);
+  if (parts.length === 0) {
+    return "Unknown";
+  }
+  return parts.join(", ");
+}
+
 export default async function AnalyticsPage() {
-  const [kpis, insights, dwellHotspots] = await Promise.all([
+  const [kpis, insights, dwellEvents] = await Promise.all([
     getAnalyticsKpis(),
     getWeeklyInsights(),
-    prisma.event.groupBy({
-      by: ["location"],
-      _count: { id: true },
+    prisma.event.findMany({
       where: { type: { contains: "DWELL" } },
-      orderBy: { _count: { id: "desc" } },
-      take: 5,
+      include: {
+        stop: {
+          select: {
+            name: true,
+            city: true,
+            state: true,
+          },
+        },
+      },
     }),
   ]);
+
+  const dwellHotspots = Object.entries(
+    dwellEvents.reduce<Record<string, number>>((acc, event) => {
+      const location = event.stop ? formatStopLocation(event.stop) : "Unknown";
+      acc[location] = (acc[location] ?? 0) + 1;
+      return acc;
+    }, {}),
+  )
+    .map(([location, count]) => ({
+      location,
+      _count: { id: count },
+    }))
+    .sort((a, b) => b._count.id - a._count.id)
+    .slice(0, 5);
 
   return (
     <div className="flex flex-col gap-8">
@@ -89,8 +120,8 @@ export default async function AnalyticsPage() {
           </thead>
           <tbody className="divide-y divide-slate-900/50">
             {dwellHotspots.map((row) => (
-              <tr key={row.location ?? "unknown"} className="transition hover:bg-slate-900/50">
-                <td className="px-4 py-2 text-white">{row.location ?? "Unknown"}</td>
+              <tr key={row.location} className="transition hover:bg-slate-900/50">
+                <td className="px-4 py-2 text-white">{row.location}</td>
                 <td className="px-4 py-2 text-right text-slate-300">{row._count.id}</td>
               </tr>
             ))}
