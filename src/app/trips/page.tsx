@@ -1,8 +1,161 @@
 import prisma from "@/lib/prisma";
+import { differenceInMinutes } from "@/lib/date-utils";
+import { listKnownMarkets, normalizeMarketCode } from "@/lib/marketRateModel";
 
 import DashboardCard from "@/src/components/DashboardCard";
 
 const pillBaseClass = "inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-medium text-white";
+
+type Coordinates = { lat: number; lon: number };
+
+type TripStopData = {
+  stopType: string | null;
+  city: string | null;
+  state: string | null;
+  lat: number | null;
+  lon: number | null;
+  scheduledAt: Date | null;
+  seq: number;
+};
+
+type DelayComputation = {
+  delayRiskPct: number | null;
+  eta: Date | null;
+  slackMinutes: number | null;
+};
+
+const MARKET_LOOKUP = new Map(listKnownMarkets().map((market) => [market.code, market]));
+const AVERAGE_SPEED_MPH = 50;
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function haversineMiles(origin: Coordinates, destination: Coordinates) {
+  const earthRadiusMiles = 3958.8;
+  const dLat = toRadians(destination.lat - origin.lat);
+  const dLon = toRadians(destination.lon - origin.lon);
+  const originLat = toRadians(origin.lat);
+  const destLat = toRadians(destination.lat);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(originLat) * Math.cos(destLat);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusMiles * c;
+}
+
+function resolveMarketCoordinates(location: string | null | undefined): Coordinates | null {
+  if (!location) return null;
+  const code = normalizeMarketCode(location);
+  if (!code) return null;
+  const market = MARKET_LOOKUP.get(code);
+  if (!market) return null;
+  return { lat: market.lat, lon: market.lon };
+}
+
+function stopCoordinates(stop: TripStopData | null | undefined): Coordinates | null {
+  if (!stop) return null;
+  if (stop.lat != null && stop.lon != null) {
+    return { lat: stop.lat, lon: stop.lon };
+  }
+  const city = stop.city?.trim();
+  if (!city) return null;
+  const combined = stop.state ? `${city}, ${stop.state}` : city;
+  return resolveMarketCoordinates(combined);
+}
+
+function findDestinationStop(stops: TripStopData[]): TripStopData | null {
+  if (!stops.length) return null;
+  const deliveryStops = [...stops].reverse().filter((stop) => stop.stopType?.toUpperCase() === "DELIVERY");
+  if (deliveryStops.length) {
+    return deliveryStops[0];
+  }
+  return stops[stops.length - 1] ?? null;
+}
+
+function computeDelayMetrics({
+  unitHomeBase,
+  destination,
+  destinationFallback,
+  deliveryWindowStart,
+  deliveryWindowEnd,
+}: {
+  unitHomeBase: string | null | undefined;
+  destination: TripStopData | null;
+  destinationFallback: string | null | undefined;
+  deliveryWindowStart: Date | null | undefined;
+  deliveryWindowEnd: Date | null | undefined;
+}): DelayComputation {
+  const originCoords = resolveMarketCoordinates(unitHomeBase);
+  const destinationCoords = destination
+    ? stopCoordinates(destination)
+    : resolveMarketCoordinates(destinationFallback);
+  if (!originCoords || !destinationCoords) {
+    return { delayRiskPct: null, eta: null, slackMinutes: null };
+  }
+
+  const distance = haversineMiles(originCoords, destinationCoords);
+  const travelMinutes = Math.round(((distance || 0) / AVERAGE_SPEED_MPH) * 60);
+  const now = new Date();
+  const eta = new Date(now.getTime() + travelMinutes * 60 * 1000);
+
+  if (!deliveryWindowEnd) {
+    return { delayRiskPct: null, eta, slackMinutes: null };
+  }
+
+  const timeUntilWindowEnd = differenceInMinutes(deliveryWindowEnd, now);
+  const slackMinutes = differenceInMinutes(deliveryWindowEnd, eta);
+
+  if (timeUntilWindowEnd <= 0) {
+    return { delayRiskPct: 1, eta, slackMinutes };
+  }
+
+  const rawWindowMinutes =
+    deliveryWindowStart && deliveryWindowEnd
+      ? Math.max(30, differenceInMinutes(deliveryWindowEnd, deliveryWindowStart))
+      : Math.max(120, Math.round(travelMinutes * 0.5 + 120));
+
+  if (slackMinutes <= 0) {
+    return { delayRiskPct: 1, eta, slackMinutes };
+  }
+
+  const normalizedSlack = Math.min(slackMinutes, rawWindowMinutes);
+  const delayRiskPct = clamp01(1 - normalizedSlack / rawWindowMinutes);
+
+  return { delayRiskPct, eta, slackMinutes };
+}
+
+function formatEtaDetail(eta: Date | null, slackMinutes: number | null): string {
+  if (!eta) return "ETA pending";
+  const timeText = eta.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  if (slackMinutes == null) {
+    return `ETA ${timeText}`;
+  }
+
+  if (slackMinutes < 0) {
+    return `ETA ${timeText} (late by ${Math.abs(slackMinutes)} min)`;
+  }
+
+  if (slackMinutes < 60) {
+    return `ETA ${timeText} (${slackMinutes} min buffer)`;
+  }
+
+  const hoursBuffer = (slackMinutes / 60).toFixed(1);
+  return `ETA ${timeText} (${hoursBuffer} h buffer)`;
+}
 
 function pctColor(pctNum: number | null | undefined) {
   if (pctNum == null || isNaN(pctNum)) return "text-white/60";
@@ -22,15 +175,32 @@ type VerdictTone = "ok" | "caution" | "danger";
 
 // Classify AI verdict for the trip
 function classifyVerdict(
-  marginPct: number,
-  delayRiskPct: number,
+  marginPct: number | null,
+  delayRiskPct: number | null,
   status: string | null | undefined,
 ) {
+  const noStatus = !status || status.trim() === "";
+  if (noStatus) {
+    return {
+      label: "Needs Intervention",
+      tone: "danger" as VerdictTone,
+    } as const;
+  }
+
+  const marginKnown = marginPct != null && !Number.isNaN(marginPct);
+  const delayKnown = delayRiskPct != null && !Number.isNaN(delayRiskPct);
+
+  if (!marginKnown || !delayKnown) {
+    return {
+      label: "Caution",
+      tone: "caution" as VerdictTone,
+    } as const;
+  }
+
   const lowMarginHard = marginPct < 0.05; // <5%
   const highDelayHard = delayRiskPct >= 0.3; // 30%+
-  const noStatus = !status || status.trim() === "";
 
-  if (lowMarginHard || highDelayHard || noStatus) {
+  if (lowMarginHard || highDelayHard) {
     return {
       label: "Needs Intervention",
       tone: "danger" as VerdictTone,
@@ -60,12 +230,16 @@ function buildReasons({
   status,
   driver,
   nextCommitmentAt,
+  eta,
+  slackMinutes,
 }: {
-  marginPct: number;
-  delayRiskPct: number;
+  marginPct: number | null;
+  delayRiskPct: number | null;
   status: string | null | undefined;
   driver: string | null | undefined;
   nextCommitmentAt: Date | null | undefined;
+  eta: Date | null;
+  slackMinutes: number | null;
 }) {
   const reasons: string[] = [];
 
@@ -73,7 +247,9 @@ function buildReasons({
     reasons.push("Missing status / not fully dispatched");
   }
 
-  if (marginPct < 0.05) {
+  if (marginPct == null || Number.isNaN(marginPct)) {
+    reasons.push("Margin data unavailable");
+  } else if (marginPct < 0.05) {
     reasons.push(`Low gross margin: ${(marginPct * 100).toFixed(1)}% (<5%)`);
   } else if (marginPct < 0.08) {
     reasons.push(`Thin margin: ${(marginPct * 100).toFixed(1)}% (<8%)`);
@@ -81,18 +257,18 @@ function buildReasons({
     reasons.push(`Margin healthy: ${(marginPct * 100).toFixed(1)}%`);
   }
 
-  if (delayRiskPct >= 0.3) {
-    reasons.push(
-      `High delay risk: ${(delayRiskPct * 100).toFixed(1)}% (late ETA likely)`,
-    );
+  if (delayRiskPct == null || Number.isNaN(delayRiskPct)) {
+    reasons.push("Delay risk pending scheduling data");
+  } else if (delayRiskPct >= 0.3) {
+    reasons.push(`High delay risk: ${(delayRiskPct * 100).toFixed(1)}% (late ETA likely)`);
   } else if (delayRiskPct >= 0.15) {
-    reasons.push(
-      `Watch ETA: ${(delayRiskPct * 100).toFixed(1)}% delay risk`,
-    );
+    reasons.push(`Watch ETA: ${(delayRiskPct * 100).toFixed(1)}% delay risk`);
   } else {
-    reasons.push(
-      `On-time projection looks fine (${(delayRiskPct * 100).toFixed(1)}% risk)`,
-    );
+    reasons.push(`On-time projection looks fine (${(delayRiskPct * 100).toFixed(1)}% risk)`);
+  }
+
+  if (eta) {
+    reasons.push(formatEtaDetail(eta, slackMinutes));
   }
 
   if (driver) {
@@ -125,6 +301,23 @@ export default async function TripsPage() {
   const tripsRaw = await prisma.trip.findMany({
     include: {
       order: true,
+      unitRef: {
+        select: {
+          homeBase: true,
+        },
+      },
+      stops: {
+        orderBy: { seq: "asc" },
+        select: {
+          stopType: true,
+          city: true,
+          state: true,
+          lat: true,
+          lon: true,
+          scheduledAt: true,
+          seq: true,
+        },
+      },
     },
     orderBy: [{ createdAt: "desc" }],
     take: 25,
@@ -132,10 +325,37 @@ export default async function TripsPage() {
 
   // Normalize data for rendering
   const trips = tripsRaw.map((t) => {
-    const marginPct = Number(t.marginPct ?? 0);
-    const delayRiskPct = Number(t.delayRiskPct ?? 0);
+    const revenue = t.revenue != null ? Number(t.revenue) : null;
+    const totalCost = t.totalCost != null ? Number(t.totalCost) : null;
+    const computedProfit =
+      revenue != null && totalCost != null ? revenue - totalCost : null;
+    const fallbackProfit =
+      computedProfit != null
+        ? computedProfit
+        : t.profit != null
+          ? Number(t.profit)
+          : null;
+    const marginPct =
+      revenue && revenue !== 0 && fallbackProfit != null
+        ? fallbackProfit / revenue
+        : null;
+
     const miles = Number(t.miles ?? 0);
-    const rpm = t.revenue && t.miles ? Number(t.revenue) / Number(t.miles) : null;
+    const rpm = revenue != null && miles > 0 ? revenue / miles : null;
+
+    const stops = ((t.stops ?? []) as TripStopData[]).sort((a, b) => a.seq - b.seq);
+    const destinationStop = findDestinationStop(stops);
+    const fallbackDestination = destinationStop
+      ? [destinationStop.city, destinationStop.state].filter(Boolean).join(", ") || null
+      : t.order?.destination ?? null;
+
+    const { delayRiskPct, eta, slackMinutes } = computeDelayMetrics({
+      unitHomeBase: t.unitRef?.homeBase ?? null,
+      destination: destinationStop,
+      destinationFallback: fallbackDestination ?? t.order?.destination ?? null,
+      deliveryWindowStart: t.order?.delWindowStart ?? destinationStop?.scheduledAt ?? null,
+      deliveryWindowEnd: t.order?.delWindowEnd ?? destinationStop?.scheduledAt ?? null,
+    });
 
     const verdict = classifyVerdict(marginPct, delayRiskPct, t.status);
     const reasons = buildReasons({
@@ -144,6 +364,8 @@ export default async function TripsPage() {
       status: t.status,
       driver: t.driver,
       nextCommitmentAt: t.nextCommitmentAt,
+      eta,
+      slackMinutes,
     });
 
     return {
@@ -160,6 +382,8 @@ export default async function TripsPage() {
       verdict,
       reasons,
       rpm,
+      eta,
+      slackMinutes,
     };
   });
 
@@ -259,7 +483,9 @@ export default async function TripsPage() {
                   {/* Margin */}
                   <td className="py-3 pr-4">
                     <div className={`font-semibold ${pctColor(t.marginPct)} text-[12px]`}>
-                      {(t.marginPct * 100).toFixed(1)}%
+                      {t.marginPct != null && !Number.isNaN(t.marginPct)
+                        ? `${(t.marginPct * 100).toFixed(1)}%`
+                        : "—"}
                     </div>
                     <div className="text-[10px] text-white/50">Gross margin</div>
                   </td>
@@ -267,9 +493,11 @@ export default async function TripsPage() {
                   {/* Delay Risk */}
                   <td className="py-3 pr-4">
                     <div className={`font-semibold ${riskColor(t.delayRiskPct)} text-[12px]`}>
-                      {(t.delayRiskPct * 100).toFixed(1)}%
+                      {t.delayRiskPct != null && !Number.isNaN(t.delayRiskPct)
+                        ? `${(t.delayRiskPct * 100).toFixed(1)}%`
+                        : "—"}
                     </div>
-                    <div className="text-[10px] text-white/50">Late risk</div>
+                    <div className="text-[10px] text-white/50">{formatEtaDetail(t.eta, t.slackMinutes)}</div>
                   </td>
 
                   {/* Verdict */}
