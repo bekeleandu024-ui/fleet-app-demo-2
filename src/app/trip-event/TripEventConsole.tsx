@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import DashboardCard from "@/src/components/DashboardCard";
@@ -150,13 +149,84 @@ export default function TripEventConsole({
 
   const feedKey = useMemo(() => buildQuery(filters), [filters]);
   const initialKey = useMemo(() => buildQuery(initialFilters), [initialFilters]);
-  const { data, isLoading, mutate, error } = useSWR(feedKey, fetcher, {
-    fallbackData: feedKey === initialKey ? { events: initialEvents, summary: initialSummary } : undefined,
-    refreshInterval: 15_000,
-  });
+  const [feedData, setFeedData] = useState<{ events: FeedEvent[]; summary: FeedSummary }>(() => ({
+    events: initialEvents,
+    summary: initialSummary,
+  }));
+  const [isLoading, setIsLoading] = useState(feedKey !== initialKey);
+  const [error, setError] = useState<Error | null>(null);
 
-  const summary = data?.summary ?? initialSummary;
-  const events = data?.events ?? initialEvents;
+  const fetchLatest = useCallback(
+    async ({
+      showLoading = true,
+      cancelledRef,
+    }: { showLoading?: boolean; cancelledRef?: { current: boolean } } = {}) => {
+      if (cancelledRef?.current) {
+        return;
+      }
+
+      if (showLoading) {
+        setIsLoading(true);
+      }
+
+      try {
+        const result = await fetcher(feedKey);
+        if (cancelledRef?.current) {
+          return;
+        }
+
+        setFeedData(result);
+        setError(null);
+      } catch (fetchError) {
+        if (cancelledRef?.current) {
+          return;
+        }
+
+        setError(fetchError as Error);
+      } finally {
+        if (showLoading && !cancelledRef?.current) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [feedKey],
+  );
+
+  const mutate = useCallback(async () => {
+    try {
+      await fetchLatest();
+    } catch {
+      /* noop */
+    }
+  }, [fetchLatest]);
+
+  useEffect(() => {
+    const cancelledRef = { current: false };
+
+    if (feedKey === initialKey) {
+      setFeedData({ events: initialEvents, summary: initialSummary });
+      setError(null);
+      setIsLoading(false);
+    } else {
+      fetchLatest({ cancelledRef }).catch(() => {
+        /* handled via state */
+      });
+    }
+
+    const interval = setInterval(() => {
+      fetchLatest({ showLoading: false, cancelledRef }).catch(() => {
+        /* handled via state */
+      });
+    }, 15_000);
+
+    return () => {
+      cancelledRef.current = true;
+      clearInterval(interval);
+    };
+  }, [fetchLatest, feedKey, initialEvents, initialSummary, initialKey]);
+
+  const summary = feedData.summary;
+  const events = feedData.events;
 
   useEffect(() => {
     if (!("geolocation" in navigator)) {
