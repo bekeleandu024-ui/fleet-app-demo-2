@@ -48,6 +48,7 @@ export interface LoggedTripEvent {
   eventType: TripEventType;
   stopId: string | null;
   stopLabel: string | null;
+  notes: string | null;
   odometerMiles: number | null;
   lat: number | null;
   lon: number | null;

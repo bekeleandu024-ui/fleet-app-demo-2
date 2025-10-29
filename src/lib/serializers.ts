@@ -54,6 +54,7 @@ export function serializeTripEventForClient(event: TripEvent): LoggedTripEvent {
     eventType: event.eventType,
     stopId: event.stopId ?? null,
     stopLabel: event.stopLabel ?? null,
+    notes: event.notes ?? null,
     odometerMiles:
       typeof event.odometerMiles === "number" && Number.isFinite(event.odometerMiles)
         ? event.odometerMiles

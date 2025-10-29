@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import prisma from "@/lib/prisma";
 import { applyTripEventCosting } from "@/lib/applyTripEventCosting";
+import { refreshTripOperationalStatus } from "@/lib/refreshTripOperationalStatus";
 import { buildTripCostingSnapshot, serializeTripEventForClient } from "@/lib/serializers";
 import type { TripEventLogResponse, TripEventType } from "@/types/trip";
 
@@ -23,6 +24,7 @@ type EventRequestPayload = {
   odometerMiles?: number | null;
   lat?: number | null;
   lon?: number | null;
+  notes?: string | null;
 };
 
 function sanitizeCoordinate(value: unknown): number | null {
@@ -69,19 +71,44 @@ export async function POST(
   }
 
   const stopId = payload.stopId ?? null;
-  const stopLabel = typeof payload.stopLabel === "string" ? payload.stopLabel : null;
+  const stopLabel = typeof payload.stopLabel === "string" ? payload.stopLabel.trim() || null : null;
+  const notes = typeof payload.notes === "string" ? payload.notes.trim() || null : null;
   const odometerMiles = sanitizeOdometer(payload.odometerMiles ?? null);
   const lat = sanitizeCoordinate(payload.lat ?? null);
   const lon = sanitizeCoordinate(payload.lon ?? null);
-  const at = new Date();
+  const now = new Date();
+  const at = new Date(Math.floor(now.getTime() / 1000) * 1000);
 
   try {
+    const existingEvent = await prisma.tripEvent.findFirst({
+      where: {
+        tripId,
+        eventType,
+        at,
+      },
+    });
+
+    if (existingEvent) {
+      const serializedExisting = serializeTripEventForClient(existingEvent);
+      const updatedTrip = await prisma.trip.findUniqueOrThrow({ where: { id: tripId } });
+      const tripSnapshot = buildTripCostingSnapshot(updatedTrip);
+
+      const responseBody: TripEventLogResponse = {
+        success: true,
+        trip: tripSnapshot,
+        event: serializedExisting,
+      };
+
+      return NextResponse.json(responseBody);
+    }
+
     const tripEvent = await prisma.tripEvent.create({
       data: {
         tripId,
         eventType,
         stopId,
         stopLabel,
+        notes,
         odometerMiles,
         lat,
         lon,
@@ -100,11 +127,13 @@ export async function POST(
         notes:
           typeof odometerMiles === "number"
             ? `Odometer: ${odometerMiles.toFixed(1)} mi`
-            : stopLabel,
+            : notes ?? stopLabel,
       },
     });
 
     const updatedTrip = await applyTripEventCosting(tripId, eventType);
+
+    await refreshTripOperationalStatus({ tripId, eventType, at });
     const tripSnapshot = buildTripCostingSnapshot(updatedTrip);
     const serializedEvent = serializeTripEventForClient(tripEvent);
 

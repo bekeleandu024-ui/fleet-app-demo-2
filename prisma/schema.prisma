@@ -122,6 +122,7 @@ model TripEvent {
   stopId        String?
   stop          TripStop? @relation(fields: [stopId], references: [id])
   stopLabel     String?
+  notes         String?
   odometerMiles Float?
   lat           Float?
   lon           Float?
