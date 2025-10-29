@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const STOP_TYPES = [
@@ -261,20 +261,36 @@ export default function BookTripButton(props: BaseProps) {
   const [milesInput, setMilesInput] = useState(() =>
     Number.isFinite(miles) && miles > 0 ? miles.toString() : "",
   );
-  const [rpmInput, setRpmInput] = useState(() =>
-    Number.isFinite(rpmQuoted) && rpmQuoted > 0 ? rpmQuoted.toFixed(2) : "",
-  );
-  const [totalRevenueInput, setTotalRevenueInput] = useState(() => {
-    if (Number.isFinite(miles) && miles > 0 && Number.isFinite(rpmQuoted) && rpmQuoted > 0) {
-      return (miles * rpmQuoted).toFixed(2);
-    }
-    return "";
-  });
+  const [rpmInput, setRpmInput] = useState("");
+  const [totalRevenueInput, setTotalRevenueInput] = useState("");
   const [fuelInput, setFuelInput] = useState("0");
   const [addOnsInput, setAddOnsInput] = useState("0");
   const [totalCpmInput, setTotalCpmInput] = useState(() =>
     Number.isFinite(totalCpm) && totalCpm > 0 ? totalCpm.toFixed(2) : "",
   );
+  const [lastEditedRevenueField, setLastEditedRevenueField] = useState<"rpm" | "revenue" | null>(null);
+
+  const formatCurrency = (value: number) => value.toFixed(2);
+  const formatRpm = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) {
+      return "";
+    }
+    const fixed = value.toFixed(3);
+    const trimmed = fixed.replace(/0+$/u, "").replace(/\.$/u, "");
+    if (!trimmed.includes(".")) {
+      return `${trimmed}.00`;
+    }
+    const decimals = trimmed.split(".")[1]?.length ?? 0;
+    if (decimals === 1) {
+      return `${trimmed}0`;
+    }
+    return trimmed;
+  };
+
+  const parsePositive = (value: string) => {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  };
 
   const canRemoveStop = useMemo(() => stops.length > 1, [stops.length]);
 
@@ -344,6 +360,107 @@ export default function BookTripButton(props: BaseProps) {
     return margin;
   }, [costEstimate, revenueEstimate]);
 
+  const totalCostDisplay = useMemo(() => {
+    if (milesValue <= 0 || totalCpmValue < 0) {
+      return "";
+    }
+    return formatCurrency(milesValue * totalCpmValue);
+  }, [milesValue, totalCpmValue]);
+
+  const handleRpmInputChange = (value: string) => {
+    setRpmInput(value);
+    setLastEditedRevenueField("rpm");
+
+    if (!value.trim()) {
+      setTotalRevenueInput("");
+      return;
+    }
+
+    const rpmNumber = parsePositive(value);
+    if (rpmNumber === null) {
+      setTotalRevenueInput("");
+      return;
+    }
+
+    const milesNumber = parsePositive(milesInput);
+    if (milesNumber == null) {
+      return;
+    }
+
+    setTotalRevenueInput(formatCurrency(milesNumber * rpmNumber));
+  };
+
+  const handleRpmBlur = () => {
+    const rpmNumber = parsePositive(rpmInput ?? "");
+    if (rpmNumber == null) {
+      setRpmInput("");
+      return;
+    }
+    setRpmInput(formatRpm(rpmNumber));
+  };
+
+  const handleTotalRevenueChange = (value: string) => {
+    setTotalRevenueInput(value);
+    setLastEditedRevenueField("revenue");
+
+    if (!value.trim()) {
+      setRpmInput("");
+      return;
+    }
+
+    const revenueNumber = parsePositive(value);
+    if (revenueNumber === null) {
+      setRpmInput("");
+      return;
+    }
+
+    const milesNumber = parsePositive(milesInput);
+    if (milesNumber == null) {
+      return;
+    }
+
+    const rpmFromRevenue = revenueNumber / milesNumber;
+    if (!Number.isFinite(rpmFromRevenue) || rpmFromRevenue <= 0) {
+      setRpmInput("");
+      return;
+    }
+
+    setRpmInput(formatRpm(rpmFromRevenue));
+  };
+
+  const handleTotalRevenueBlur = () => {
+    const revenueNumber = parsePositive(totalRevenueInput ?? "");
+    if (revenueNumber == null) {
+      setTotalRevenueInput("");
+      return;
+    }
+    setTotalRevenueInput(formatCurrency(revenueNumber));
+  };
+
+  useEffect(() => {
+    if (milesValue <= 0) {
+      return;
+    }
+
+    if (lastEditedRevenueField === "revenue") {
+      const revenueNumber = parsePositive(totalRevenueInput);
+      if (revenueNumber != null) {
+        const rpmFromRevenue = revenueNumber / milesValue;
+        if (Number.isFinite(rpmFromRevenue) && rpmFromRevenue > 0) {
+          setRpmInput(formatRpm(rpmFromRevenue));
+        }
+      }
+      return;
+    }
+
+    if (lastEditedRevenueField === "rpm") {
+      const rpmNumber = parsePositive(rpmInput);
+      if (rpmNumber != null) {
+        setTotalRevenueInput(formatCurrency(rpmNumber * milesValue));
+      }
+    }
+  }, [lastEditedRevenueField, milesValue]);
+
   const handleStopChange = (id: string, field: keyof StopFormState, value: string) => {
     setStops((prev) =>
       prev.map((stop) => (stop.id === id ? { ...stop, [field]: value } : stop)),
@@ -375,10 +492,13 @@ export default function BookTripButton(props: BaseProps) {
       const total = option.fixedCPM + option.wageCPM + option.addOnsCPM + rolling;
       const suggestedRpm = total > 0 ? Number((total + 0.45).toFixed(2)) : null;
       if (suggestedRpm !== null) {
-        setRpmInput(suggestedRpm.toFixed(2));
+        setRpmInput(formatRpm(suggestedRpm));
+        setLastEditedRevenueField("rpm");
         const milesParsed = safeNumber(milesInput, 0);
         if (milesParsed > 0) {
-          setTotalRevenueInput((milesParsed * suggestedRpm).toFixed(2));
+          setTotalRevenueInput(formatCurrency(milesParsed * suggestedRpm));
+        } else {
+          setTotalRevenueInput("");
         }
       }
       setTotalCpmInput(total.toFixed(2));
@@ -612,7 +732,8 @@ export default function BookTripButton(props: BaseProps) {
               <label className="text-[11px] uppercase tracking-wide text-neutral-500">Quoted RPM</label>
               <input
                 value={rpmInput}
-                onChange={(event) => setRpmInput(event.target.value)}
+                onChange={(event) => handleRpmInputChange(event.target.value)}
+                onBlur={handleRpmBlur}
                 placeholder="Revenue per mile"
                 className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-100 focus:border-emerald-500 focus:outline-none"
               />
@@ -621,7 +742,8 @@ export default function BookTripButton(props: BaseProps) {
               <label className="text-[11px] uppercase tracking-wide text-neutral-500">Total Revenue ($)</label>
               <input
                 value={totalRevenueInput}
-                onChange={(event) => setTotalRevenueInput(event.target.value)}
+                onChange={(event) => handleTotalRevenueChange(event.target.value)}
+                onBlur={handleTotalRevenueBlur}
                 placeholder="Linehaul total"
                 className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-100 focus:border-emerald-500 focus:outline-none"
               />
@@ -651,6 +773,15 @@ export default function BookTripButton(props: BaseProps) {
                 onChange={(event) => setTotalCpmInput(event.target.value)}
                 placeholder="Cost per mile"
                 className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-100 focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] uppercase tracking-wide text-neutral-500">Total Cost ($)</label>
+              <input
+                value={totalCostDisplay}
+                readOnly
+                placeholder="Auto-calculated"
+                className="w-full cursor-not-allowed rounded-md border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-sm text-neutral-300"
               />
             </div>
           </div>

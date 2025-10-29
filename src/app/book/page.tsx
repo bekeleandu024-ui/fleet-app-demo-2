@@ -73,6 +73,22 @@ const computeSuggestedRpm = (rate: SafeRate | null) => {
   return Number((total + 0.45).toFixed(2));
 };
 
+const formatRpmDisplay = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return "0.00";
+  }
+  const fixed = value.toFixed(3);
+  const trimmed = fixed.replace(/0+$/u, "").replace(/\.$/u, "");
+  if (!trimmed.includes(".")) {
+    return `${trimmed}.00`;
+  }
+  const decimals = trimmed.split(".")[1]?.length ?? 0;
+  if (decimals === 1) {
+    return `${trimmed}0`;
+  }
+  return trimmed;
+};
+
 const formatWindow = (start: Date | null, end: Date | null): string => {
   if (!start && !end) {
     return "Flexible";
@@ -169,18 +185,6 @@ const OrderSnapshotCard = ({
       )}
     </div>
   );
-};
-
-const marginClass = (value: number): string => {
-  if (value >= 0.15) {
-    return "text-emerald-400";
-  }
-
-  if (value >= 0.08) {
-    return "text-amber-400";
-  }
-
-  return "text-rose-400";
 };
 
 const toSafeOrders = (
@@ -407,6 +411,33 @@ export default async function BookPage({
       ]
     : [];
 
+  const recommendedRevenueTarget = suggestion
+    ? (() => {
+        const miles = suggestion.etaEstimate.miles;
+        const totalCpm = suggestion.suggestedRate.totalCPM;
+        if (!Number.isFinite(miles) || miles <= 0) {
+          return null;
+        }
+        if (!Number.isFinite(totalCpm) || totalCpm < 0) {
+          return null;
+        }
+        const totalCost = miles * totalCpm;
+        const revenue = totalCost / (1 - 0.05);
+        return Number.isFinite(revenue) ? revenue : null;
+      })()
+    : null;
+
+  const recommendedRpmTarget = suggestion && recommendedRevenueTarget != null
+    ? (() => {
+        const miles = suggestion.etaEstimate.miles;
+        if (!Number.isFinite(miles) || miles <= 0) {
+          return null;
+        }
+        const rpm = recommendedRevenueTarget / miles;
+        return Number.isFinite(rpm) ? rpm : null;
+      })()
+    : null;
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -515,12 +546,25 @@ export default async function BookPage({
                       </div>
                     </div>
                     <div className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Projected Margin</div>
-                      <div className={`mt-2 text-xl font-semibold tracking-tight ${marginClass(suggestion.suggestedRate.estMarginPct)}`}>
-                        {(suggestion.suggestedRate.estMarginPct * 100).toFixed(1)}%
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+                        Revenue Targets for 5% Margin
                       </div>
-                      <p className="text-xs text-neutral-400">
-                        Total CPM {suggestion.suggestedRate.totalCPM.toFixed(2)}. Internal cost engine (fixed+wage+rolling+add-ons).
+                      <div className="mt-2 space-y-2">
+                        <div>
+                          <div className="text-xs text-neutral-400">Recommended Revenue</div>
+                          <div className="text-xl font-semibold text-neutral-100">
+                            {recommendedRevenueTarget != null ? `$${recommendedRevenueTarget.toFixed(2)}` : "—"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-neutral-400">Recommended RPM</div>
+                          <div className="text-xl font-semibold text-neutral-100">
+                            {recommendedRpmTarget != null ? `$${formatRpmDisplay(recommendedRpmTarget)}/mi` : "—"}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-neutral-400">
+                        Targets a 5% margin using current miles and cost assumptions.
                       </p>
                     </div>
                     <div>
