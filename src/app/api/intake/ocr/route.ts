@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { advancedOcrExtract } from "@/server/ocr/advancedOcr";
+import { AdvancedOcrConfigError, advancedOcrExtract } from "@/server/ocr/advancedOcr";
 import { parseStructuredOrder } from "@/server/ocr/parseStructuredOrder";
+import { simpleOcrExtract } from "@/server/ocr/simpleOcr";
+
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +19,19 @@ export async function POST(req: Request) {
     const fileBuffer = Buffer.from(arrayBuffer);
     const mimeType = (file as File).type || "application/octet-stream";
 
-    const ocr = await advancedOcrExtract(fileBuffer, mimeType);
+    let ocr;
+    try {
+      ocr = await advancedOcrExtract(fileBuffer, mimeType);
+    } catch (error) {
+      if (
+        error instanceof AdvancedOcrConfigError ||
+        (error instanceof Error && /Azure Document Intelligence/.test(error.message))
+      ) {
+        ocr = await simpleOcrExtract(fileBuffer);
+      } else {
+        throw error;
+      }
+    }
     const parsed = await parseStructuredOrder(ocr.text);
     const finalConfidence = Math.max(0, Math.min(1, Math.min(ocr.confidence, parsed.confidence)));
 
