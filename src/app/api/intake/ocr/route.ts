@@ -22,10 +22,20 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
+      text: ocr.text,
+      confidence: finalConfidence,
       parsed: {
-        ...parsed,
-        confidence: finalConfidence,
+        customer: parsed.customer || undefined,
+        origin: parsed.origin || undefined,
+        destination: parsed.destination || undefined,
+        requiredTruck: parsed.requiredTruck || undefined,
+        notes: parsed.notes || undefined,
+        puWindowStart: parsed.pickupWindowStart || undefined,
+        puWindowEnd: parsed.pickupWindowEnd || undefined,
+        delWindowStart: parsed.deliveryWindowStart || undefined,
+        delWindowEnd: parsed.deliveryWindowEnd || undefined,
       },
+      warnings: parsed.warnings ?? [],
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to process OCR intake";

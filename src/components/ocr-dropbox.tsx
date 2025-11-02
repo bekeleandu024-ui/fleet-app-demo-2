@@ -1,23 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { loadTesseract, type TesseractLike } from "@/lib/tesseract-loader";
-import {
-  parseOcrToOrder,
-  type ParsedOrderDraft,
-  type ParsedOrderField,
-} from "@/lib/ocr";
+import { type ParsedOrderDraft, type ParsedOrderField } from "@/lib/ocr";
 
 type Tone = "info" | "success" | "error";
-
-let tesseractModule: Promise<TesseractLike> | null = null;
-
-async function getTesseract() {
-  if (!tesseractModule) {
-    tesseractModule = loadTesseract();
-  }
-  return tesseractModule;
-}
 
 type StatusState = {
   text: string;
@@ -73,7 +59,7 @@ export default function OcrDropBox({ onParsed, actions }: Props) {
     async (file: File) => {
       setBusy(true);
       setProgress(0);
-      setStatus({ text: "Running OCR…", tone: "info" });
+      setStatus({ text: "Uploading to Azure Document Intelligence…", tone: "info" });
       const preview = URL.createObjectURL(file);
       setPreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -81,25 +67,82 @@ export default function OcrDropBox({ onParsed, actions }: Props) {
       });
 
       try {
-        const tesseract = await getTesseract();
-        const result = await tesseract.recognize(file, "eng", {
-          logger: (message) => {
-            if (message.progress !== undefined) {
-              setProgress(Math.min(100, Math.round(message.progress * 100)));
-            }
-          },
+        const formData = new FormData();
+        formData.append("file", file);
+
+        setProgress(15);
+
+        const response = await fetch("/api/intake/ocr", {
+          method: "POST",
+          body: formData,
         });
-        const text = result.data.text.trim();
-        const confidence = Number(result.data.confidence ?? 0);
-        const parsed = parseOcrToOrder(text);
-        setStatus({ text: "Text captured. Review and apply fields below.", tone: "success" });
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "");
+          throw new Error(errorText || "Unable to process OCR");
+        }
+
+        setProgress(60);
+
+        const payload = (await response.json().catch(() => null)) as
+          | {
+              ok?: boolean;
+              confidence?: unknown;
+              text?: unknown;
+              parsed?: Record<string, unknown> | null;
+              warnings?: unknown;
+              error?: unknown;
+            }
+          | null;
+
+        if (!payload || payload.ok !== true) {
+          const message =
+            payload?.error && typeof payload.error === "string"
+              ? payload.error
+              : "Azure Document Intelligence was unable to read the document";
+          throw new Error(message);
+        }
+
+        const parsedData =
+          payload.parsed && typeof payload.parsed === "object"
+            ? (payload.parsed as Record<string, unknown>)
+            : {};
+        const readString = (value: unknown) => (typeof value === "string" && value.trim() ? value : undefined);
+
+        const parsedOrder: ParsedOrderDraft = {
+          customer: readString(parsedData.customer),
+          origin: readString(parsedData.origin),
+          destination: readString(parsedData.destination),
+          requiredTruck: readString(parsedData.requiredTruck),
+          puWindowStart: readString(parsedData.puWindowStart),
+          puWindowEnd: readString(parsedData.puWindowEnd),
+          delWindowStart: readString(parsedData.delWindowStart),
+          delWindowEnd: readString(parsedData.delWindowEnd),
+          notes: readString(parsedData.notes),
+        };
+
+        const warnings = Array.isArray(payload.warnings)
+          ? payload.warnings.filter((item): item is string => typeof item === "string")
+          : [];
+
+        const confidenceValue =
+          typeof payload.confidence === "number" && Number.isFinite(payload.confidence)
+            ? Math.max(0, Math.min(1, payload.confidence)) * 100
+            : undefined;
+        const rawText = typeof payload.text === "string" ? payload.text : undefined;
+
+        const warningSuffix = warnings.length
+          ? ` (${warnings.length} warning${warnings.length === 1 ? "" : "s"})`
+          : "";
+        setProgress(90);
+        setStatus({ text: `Text captured. Review and apply fields below${warningSuffix}.`, tone: "success" });
         onParsed({
           ok: true,
-          ocrConfidence: confidence,
-          text,
-          parsed: parsed.parsedOrder,
-          warnings: parsed.warnings,
-          fields: parsed.fields,
+          ocrConfidence: confidenceValue,
+          text: rawText,
+          parsed: parsedOrder,
+          warnings,
+          fields: [],
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
@@ -115,9 +158,11 @@ export default function OcrDropBox({ onParsed, actions }: Props) {
 
   const handleFiles = useCallback(
     (files: FileList | File[]) => {
-      const list = Array.from(files).filter((file) => file.type.startsWith("image"));
+      const list = Array.from(files).filter(
+        (file) => file.type.startsWith("image") || file.type === "application/pdf"
+      );
       if (!list.length) {
-        setStatus({ text: "Please use an image file", tone: "error" });
+        setStatus({ text: "Please use an image or PDF file", tone: "error" });
         return;
       }
       void handleImage(list[0]);
@@ -173,7 +218,7 @@ export default function OcrDropBox({ onParsed, actions }: Props) {
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/*,application/pdf"
           className="hidden"
           onChange={(event) => {
             if (event.target.files) {
