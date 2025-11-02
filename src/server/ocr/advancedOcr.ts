@@ -3,12 +3,19 @@ export type OcrResult = {
   confidence: number;
 };
 
+export class AdvancedOcrConfigError extends Error {
+  constructor(message = "ADVANCED OCR not configured") {
+    super(message);
+    this.name = "AdvancedOcrConfigError";
+  }
+}
+
 function getConfig() {
   const url = process.env.ADVANCED_OCR_URL;
   const key = process.env.ADVANCED_OCR_KEY;
 
   if (!url || !key) {
-    throw new Error("ADVANCED OCR not configured");
+    throw new AdvancedOcrConfigError();
   }
 
   return { url, key };
