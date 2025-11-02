@@ -14,7 +14,7 @@ function getConfig() {
   return { url, key };
 }
 
-const DOCUMENT_INTELLIGENCE_MODEL_ID = "fleetappocr2";
+const DOCUMENT_INTELLIGENCE_MODEL_ID = "current_ocr";
 const DOCUMENT_INTELLIGENCE_API_VERSION = "2024-02-29-preview";
 const POLL_INTERVAL_MS = 1_000;
 const POLL_TIMEOUT_MS = 60_000;
